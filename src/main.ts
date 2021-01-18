@@ -24,7 +24,7 @@ async function run(): Promise<void> {
       dockerTagMajor: core.getInput('docker-tag-major'),
       dockerFile: core.getInput('docker-file'),
       dockerUsername: core.getInput('docker-username'),
-      dockerPassword: core.getInput('docker-password'),
+      dockerPassword: core.getInput('docker-password', { required: false }),
       dockerPullSecret: core.getInput('docker-pullsecret'),
       hashSalt: core.getInput('hash-salt'),
       helmTagMajor: core.getInput('helm-tag-major'),
