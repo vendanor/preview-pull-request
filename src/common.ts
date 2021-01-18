@@ -23,9 +23,10 @@ export interface Options {
 }
 
 export interface CommandResult {
-  previewUrl: string;
-  helmReleaseName: string;
-  dockerImageVersion: string;
+  previewUrl?: string;
+  helmReleaseName?: string;
+  dockerImageVersion?: string;
+  success: boolean;
 }
 
 export interface HelmReleaseInfo {

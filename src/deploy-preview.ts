@@ -148,6 +148,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   return {
     previewUrl: completePreviewUrl,
     helmReleaseName,
-    dockerImageVersion
+    dockerImageVersion,
+    success: finalResult === 0 // hmm...
   }
 }
