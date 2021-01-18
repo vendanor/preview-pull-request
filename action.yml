@@ -1,11 +1,101 @@
-name: 'Your name here'
-description: 'Provide a description here'
-author: 'Your name or organization here'
+name: 'Preview Pull Requests in Azure Kubernetes Service'
+description: 'Deploy preview of Pull Requests to Azure Kubernetes Service using Helm charts'
+author: 'vendanor'
+
+branding:
+  icon: "box"
+  color: "orange"
+
 inputs:
-  milliseconds: # change this
+  command:
     required: true
-    description: 'input description here'
-    default: 'default value if applicable'
+    default: "deploy"
+    description: "Command to run, can be deploy or remove"
+
+  token:
+    description: "Your Github token"
+    default: $
+    required: true
+  azure-token:
+    required: true
+    description: "Your Azure token"
+
+  docker-file:
+    required: false
+    default: "Dockerfile"
+    description: "Dockerfile to build, tag with preview metadata and publish to container registry"
+  docker-registry:
+    required: false
+    default: "ghcr.io"
+    description: "Docker container registry. Defaults to Github container registry"
+  docker-username:
+    required: true
+    description: "Username docker container registry, ghcr? github.repository_owner"
+  docker-password:
+    required: true
+    description: "Password docker container registry"
+  docker-image-name:
+    required: true
+    description: "Example vn-my-app"
+  docker-organization:
+    required: false
+    default: "vendanor"
+    description: "Organization used to construct docker registry url"
+  docker-tag-major:
+    required: false
+    default: "1.0"
+    description: "Major tag used when tagging docker images, example: 1.0"
+  docker-pullsecret:
+    required: true
+    description: "Docker pullsecret to use when pulling docker images from registry when deploying helm chart"
+
+  helm-namespace:
+    required: false
+    default: "vn-preview"
+    description: "Helm namespace where Helm releases are published"
+  helm-repo-url:
+    required: false
+    description: "Helm chart repo. If supplied, Helm charts are published here"
+  helm-organization:
+    required: false
+    default: "vendanor"
+    description: "Used when pushing helm chart to helm chart repo"
+  helm-repo-user:
+    required: false
+    default: "vendanor"
+    description: "Username to helm chart repo if you want to publish chart"
+  helm-repo-password:
+    required: false
+    description: "Helm chart repo password if you want tp publish chart"
+  helm-chart:
+    required: true
+    description: "Path to helm chart in repo, example: charts/vn-my-app"
+  helm-tag-major:
+    required: true
+    default: "1.0"
+    description: "Major tag when tagging helm chart previews, example: 1.0"
+
+  # idea, use this for 1) docker image url 2) helm chart url 3) preview url?  => rename to preview-name?
+  app-name:
+    required: true
+    description: "App name used in preview url."
+  hash-salt:
+    required: false
+    default: "salt"
+    description: "Secret salt used to generate preview hash"
+  base-url:
+    required: false
+    default: "pr.st.vendanor.com"
+    description: "Base preview url, example preview.domain.com"
+
+outputs:
+  preview-url:
+    description: "Complete url to preview"
+  docker-image-version:
+    description: "Docker image name including tags (semver)"
+  helm-release-version:
+    description: "Helm chart release version including tags (semver)"
+
 runs:
   using: 'node12'
   main: 'dist/index.js'

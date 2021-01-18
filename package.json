@@ -25,7 +25,13 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@actions/core": "^1.2.6"
+    "@actions/core": "^1.2.6",
+    "@actions/exec": "^1.0.4",
+    "@actions/github": "^4.0.0",
+    "@actions/io": "^1.0.2",
+    "@types/crypto-js": "^4.0.1",
+    "actions-secret-parser": "^1.0.3",
+    "crypto-js": "^4.0.0"
   },
   "devDependencies": {
     "@types/jest": "^26.0.15",
@@ -39,6 +45,7 @@
     "jest-circus": "^26.6.3",
     "js-yaml": "^3.14.0",
     "prettier": "2.2.1",
+    "src": "^1.1.2",
     "ts-jest": "^26.4.4",
     "typescript": "^4.1.3"
   }
