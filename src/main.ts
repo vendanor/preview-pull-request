@@ -4,9 +4,9 @@ import { clearPreviewsForCurrentPullRequest } from './clear-preview';
 import { deployPreview } from './deploy-preview';
 
 const setOutputFromResult = (result: CommandResult) => {
-  core.setOutput("preview-url", result.previewUrl);
-  core.setOutput("docker-image-version", result.dockerImageVersion);
-  core.setOutput("helm-release-version", result.helmReleaseName);
+  core.setOutput('preview-url', result.previewUrl);
+  core.setOutput('docker-image-version', result.dockerImageVersion);
+  core.setOutput('helm-release-version', result.helmReleaseName);
 };
 
 async function run(): Promise<void> {
@@ -14,24 +14,24 @@ async function run(): Promise<void> {
     core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');
     const options: Options = {
       cmd: core.getInput('command', { required: true }),
+      azureToken: core.getInput('azure-token', { required: true }),
       appName: core.getInput('app-name'),
-      helmNamespace: core.getInput('helm-namespace', { required: true }),
-      githubToken: core.getInput('token', { required: true }),
-      dockerImageName: core.getInput('docker-image-name', { required: true }),
-      dockerRegistry: core.getInput('docker-registry', { required: true} ),
-      dockerOrganization: core.getInput('docker-organization', { required: true }),
-      dockerTagMajor: core.getInput('docker-tag-major', { required: true }),
-      dockerFile: core.getInput('docker-file', { required: true }),
-      dockerUsername: core.getInput('docker-username', {required: true }),
-      dockerPassword: core.getInput('docker-password', {required: true }),
-      dockerPullSecret: core.getInput('docker-pullsecret', {required: true}),
-      hashSalt: core.getInput('hash-salt', { required: true }),
-      helmTagMajor: core.getInput('helm-tag-major', {required: true}),
-      helmChartFilename: core.getInput('helm-chart', {required: true}),
+      helmNamespace: core.getInput('helm-namespace'),
+      githubToken: core.getInput('token'),
+      dockerImageName: core.getInput('docker-image-name'),
+      dockerRegistry: core.getInput('docker-registry'),
+      dockerOrganization: core.getInput('docker-organization'),
+      dockerTagMajor: core.getInput('docker-tag-major'),
+      dockerFile: core.getInput('docker-file'),
+      dockerUsername: core.getInput('docker-username'),
+      dockerPassword: core.getInput('docker-password'),
+      dockerPullSecret: core.getInput('docker-pullsecret'),
+      hashSalt: core.getInput('hash-salt'),
+      helmTagMajor: core.getInput('helm-tag-major'),
+      helmChartFilename: core.getInput('helm-chart'),
       helmRepoUrl: core.getInput('helm-repo-url'),
-      helmOrganization: core.getInput('helm-organization', { required: true}),
-      azureToken: core.getInput('azure-token', {required: true}),
-      baseUrl: core.getInput('base-url', {required: true})
+      helmOrganization: core.getInput('helm-organization'),
+      baseUrl: core.getInput('base-url')
     };
 
     if (options.cmd === 'deploy') {

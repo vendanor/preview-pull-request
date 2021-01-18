@@ -29,13 +29,13 @@ inputs:
     default: "ghcr.io"
     description: "Docker container registry. Defaults to Github container registry"
   docker-username:
-    required: true
+    required: false
     description: "Username docker container registry, ghcr? github.repository_owner"
   docker-password:
-    required: true
+    required: false
     description: "Password docker container registry"
   docker-image-name:
-    required: true
+    required: false
     description: "Example vn-my-app"
   docker-organization:
     required: false
@@ -46,7 +46,7 @@ inputs:
     default: "1.0"
     description: "Major tag used when tagging docker images, example: 1.0"
   docker-pullsecret:
-    required: true
+    required: false
     description: "Docker pullsecret to use when pulling docker images from registry when deploying helm chart"
 
   helm-namespace:
@@ -68,7 +68,7 @@ inputs:
     required: false
     description: "Helm chart repo password if you want tp publish chart"
   helm-chart:
-    required: true
+    required: false
     description: "Path to helm chart in repo, example: charts/vn-my-app"
   helm-tag-major:
     required: true
