@@ -115,12 +115,14 @@ inputs:
     description: "Base preview url, example preview.domain.com"
 
 outputs:
-  preview-url:
+  previewUrl:
     description: "Complete url to preview"
-  docker-image-version:
+  dockerImageVersion:
     description: "Docker image name including tags (semver)"
-  helm-release-version:
+  helmReleaseName:
     description: "Helm chart release version including tags (semver)"
+  success:
+    description: "was everthing successful or not"
 
 runs:
   using: 'node12'

@@ -49,9 +49,6 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
   core.info('Building docker image: ' + dockerImageVersion);
   const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
-  await exec.exec(`pwd`);
-  await exec.exec(`ls -al`);
-  await exec.exec(`ls -al ${workspaceFolder}`);
   const dockerBuildResult = await runCmd('docker', [
     'build',
     workspaceFolder,
@@ -94,8 +91,6 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     '--set',
     `image=${chartVersion}`
   ]);
-
-  await exec.exec('ls -al');
 
   // publish helm chart?
   if (!!options.helmRepoUrl) {

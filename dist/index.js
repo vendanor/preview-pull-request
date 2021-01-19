@@ -283,9 +283,6 @@ function deployPreview(options) {
         const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
         core.info('Building docker image: ' + dockerImageVersion);
         const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
-        yield exec.exec(`pwd`);
-        yield exec.exec(`ls -al`);
-        yield exec.exec(`ls -al ${workspaceFolder}`);
         const dockerBuildResult = yield run_cmd_1.runCmd('docker', [
             'build',
             workspaceFolder,
@@ -321,7 +318,6 @@ function deployPreview(options) {
             '--set',
             `image=${chartVersion}`
         ]);
-        yield exec.exec('ls -al');
         // publish helm chart?
         if (!!options.helmRepoUrl) {
             core.info('Publishing helm chart..');
