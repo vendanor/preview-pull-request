@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import { runCmd } from './run-cmd';
 
-export async function loginDockerRegistry(
+export async function loginContainerRegistry(
   username: string,
   password: string,
   registry: string

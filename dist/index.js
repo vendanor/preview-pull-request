@@ -268,7 +268,10 @@ const az_login_1 = __webpack_require__(1579);
  */
 function deployPreview(options) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info('Starting deploy preview...9');
+        core.info('Starting deploy preview...');
+        // Login to azure and github container registry
+        yield az_login_1.loginAzure(options.azureToken);
+        yield docker_util_1.loginContainerRegistry(options.dockerUsername, options.dockerPassword, options.dockerRegistry);
         // Gather info
         const sha7 = yield github_util_1.getLatestCommitShortSha(options.githubToken);
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
@@ -298,27 +301,32 @@ function deployPreview(options) {
         core.info('Build docker image result code:' + dockerBuildResult.resultCode);
         core.info(dockerBuildResult.output);
         // publish docker image:
-        yield docker_util_1.loginDockerRegistry(options.dockerUsername, options.dockerPassword, options.dockerRegistry);
+        core.info('Push docker image...');
         const dockerPushResult = yield run_cmd_1.runCmd('docker', ['push', dockerImageName]);
+        core.info('Push docker image result: ' + dockerPushResult.resultCode);
         // === HELM chart ===
         const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
-        const chartFilename = `${options.helmChartFilename}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
+        // charts/vn-connect-app
+        // build folder: .
+        // didnt work: not found..:
+        const temporaryHelmChartFilename = `${options.helmChartFilePath}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
+        const chartWithoutFolder = options.helmChartFilePath.replace(/^.*[\\\/]/, '');
+        const chartFilenameGuess = `${chartWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
+        const chartFilenameToPush = chartFilenameGuess;
+        core.info('nope: ' + temporaryHelmChartFilename);
+        core.info('without: ' + chartWithoutFolder);
+        core.info('guess:' + chartFilenameGuess);
         const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
         core.info('installing plugin...');
         const pluginResult = yield exec.exec('helm', [
             'plugin',
             'install',
             'https://github.com/thynquest/helm-pack.git'
-        ], {
-            listeners: {
-                stderr: data => core.error(data.toString()),
-                stdout: data => core.info(data.toString())
-            }
-        });
-        core.info("plugin installed ok");
+        ]);
+        core.info('plugin installed: ' + pluginResult);
         yield exec.exec('helm', [
             'pack',
-            options.helmChartFilename,
+            options.helmChartFilePath,
             '--version',
             chartVersion,
             '--app-version',
@@ -326,6 +334,7 @@ function deployPreview(options) {
             '--set',
             `image=${chartVersion}`
         ]);
+        yield exec.exec('ls -al');
         // publish helm chart?
         if (!!options.helmRepoUrl) {
             yield exec.exec('helm', [
@@ -335,10 +344,16 @@ function deployPreview(options) {
             ]);
             yield exec.exec('helm', ['repo', 'add', 'vendanor', options.helmRepoUrl]);
             yield exec.exec('helm', ['repo', 'update']);
-            yield exec.exec('helm', ['push', chartFilename, options.helmOrganization]);
+            yield exec.exec('helm', [
+                'push',
+                chartFilenameToPush,
+                options.helmOrganization,
+                '--username',
+                options.helmRepoUsername,
+                '--password',
+                options.helmRepoPassword
+            ]);
         }
-        // === Connect K8S ===
-        yield az_login_1.loginAzure(options.azureToken);
         // === Install or upgrade Helm preview release! ===
         core.info('Ready to deploy to AKS...');
         const hash = generate_hash_1.generateHash(pullRequestId, options.hashSalt);
@@ -348,7 +363,7 @@ function deployPreview(options) {
         const finalResult = yield exec.exec('helm', [
             'upgrade',
             helmReleaseName,
-            chartFilename,
+            chartFilenameToPush,
             '--install',
             `--set namespace=${options.helmNamespace}`,
             `--set image=${dockerImageVersion}`,
@@ -377,6 +392,7 @@ function deployPreview(options) {
       `;
             }
         }
+        core.info('Posting message to github PR...');
         const body = getMessage(finalResult);
         const previousComment = yield github_util_1.findPreviousComment(options.githubToken, context.repo, pullRequestId, header);
         if (previousComment) {
@@ -386,12 +402,15 @@ function deployPreview(options) {
             yield github_util_1.createComment(options.githubToken, context.repo, pullRequestId, body, header);
         }
         core.info('Message posted in PR!');
-        return {
+        const result = {
             previewUrl: completePreviewUrl,
             helmReleaseName,
             dockerImageVersion,
             success: finalResult === 0 // hmm...?
         };
+        core.info('All done! Printing returned result..');
+        core.info(JSON.stringify(result, null, 2));
+        return result;
     });
 }
 exports.deployPreview = deployPreview;
@@ -468,10 +487,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.loginDockerRegistry = void 0;
+exports.loginContainerRegistry = void 0;
 const core = __importStar(__webpack_require__(2186));
 const run_cmd_1 = __webpack_require__(7537);
-function loginDockerRegistry(username, password, registry) {
+function loginContainerRegistry(username, password, registry) {
     return __awaiter(this, void 0, void 0, function* () {
         if (!username || !password) {
             throw new Error('Username and password required');
@@ -494,7 +513,7 @@ function loginDockerRegistry(username, password, registry) {
         }
     });
 }
-exports.loginDockerRegistry = loginDockerRegistry;
+exports.loginContainerRegistry = loginContainerRegistry;
 
 
 /***/ }),
@@ -758,10 +777,12 @@ function run() {
                 dockerPullSecret: core.getInput('docker-pullsecret'),
                 hashSalt: core.getInput('hash-salt'),
                 helmTagMajor: core.getInput('helm-tag-major'),
-                helmChartFilename: core.getInput('helm-chart'),
+                helmChartFilePath: core.getInput('helm-chart'),
                 helmRepoUrl: core.getInput('helm-repo-url'),
                 helmOrganization: core.getInput('helm-organization'),
-                baseUrl: core.getInput('base-url')
+                baseUrl: core.getInput('base-url'),
+                helmRepoUsername: core.getInput('helm-repo-user'),
+                helmRepoPassword: core.getInput('helm-repo-password')
             };
             if (options.cmd === 'deploy') {
                 const result = yield deploy_preview_1.deployPreview(options);

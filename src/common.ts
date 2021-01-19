@@ -1,12 +1,14 @@
 export type Command = 'deploy' | 'remove';
 
 export interface Options {
+  helmRepoUsername: string;
+  helmRepoPassword: string;
   baseUrl: string;
   dockerPullSecret: string;
   azureToken: string;
   helmOrganization: string;
   helmRepoUrl?: string;
-  helmChartFilename: string;
+  helmChartFilePath: string;
   helmTagMajor: string;
   dockerPassword: string;
   dockerUsername: string;
@@ -43,7 +45,6 @@ export type HelmListResult = Array<HelmReleaseInfo>;
 
 export interface DeploymentInfo {
   pullRequestId: string;
-
 }
 
 export interface Repo {

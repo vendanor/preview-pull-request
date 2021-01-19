@@ -32,10 +32,12 @@ async function run(): Promise<void> {
       dockerPullSecret: core.getInput('docker-pullsecret'),
       hashSalt: core.getInput('hash-salt'),
       helmTagMajor: core.getInput('helm-tag-major'),
-      helmChartFilename: core.getInput('helm-chart'),
+      helmChartFilePath: core.getInput('helm-chart'),
       helmRepoUrl: core.getInput('helm-repo-url'),
       helmOrganization: core.getInput('helm-organization'),
-      baseUrl: core.getInput('base-url')
+      baseUrl: core.getInput('base-url'),
+      helmRepoUsername: core.getInput('helm-repo-user'),
+      helmRepoPassword: core.getInput('helm-repo-password')
     };
 
     if (options.cmd === 'deploy') {

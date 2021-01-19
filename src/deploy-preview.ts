@@ -11,7 +11,7 @@ import {
 } from './github-util';
 import { generateHash } from './generate-hash';
 import { runCmd } from './run-cmd';
-import { loginDockerRegistry } from './docker-util';
+import { loginContainerRegistry } from './docker-util';
 import { loginAzure } from './az-login';
 
 /**
@@ -27,7 +27,15 @@ import { loginAzure } from './az-login';
  * @param options
  */
 export async function deployPreview(options: Options): Promise<CommandResult> {
-  core.info('Starting deploy preview...9');
+  core.info('Starting deploy preview...');
+
+  // Login to azure and github container registry
+  await loginAzure(options.azureToken);
+  await loginContainerRegistry(
+    options.dockerUsername,
+    options.dockerPassword,
+    options.dockerRegistry
+  );
 
   // Gather info
   const sha7 = await getLatestCommitShortSha(options.githubToken);
@@ -62,33 +70,39 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Build docker image result code:' + dockerBuildResult.resultCode);
   core.info(dockerBuildResult.output);
   // publish docker image:
-  await loginDockerRegistry(
-    options.dockerUsername,
-    options.dockerPassword,
-    options.dockerRegistry
-  );
+
+  core.info('Push docker image...');
   const dockerPushResult = await runCmd('docker', ['push', dockerImageName]);
+  core.info('Push docker image result: ' + dockerPushResult.resultCode);
 
   // === HELM chart ===
   const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
-  const chartFilename = `${options.helmChartFilename}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
+
+  // charts/vn-connect-app
+  // build folder: .
+
+  // didnt work: not found..:
+  const temporaryHelmChartFilename = `${options.helmChartFilePath}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
+  const chartWithoutFolder = options.helmChartFilePath.replace(/^.*[\\\/]/, '');
+  const chartFilenameGuess = `${chartWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
+  const chartFilenameToPush = chartFilenameGuess;
+  core.info('nope: ' + temporaryHelmChartFilename);
+  core.info('without: ' + chartWithoutFolder);
+  core.info('guess:' + chartFilenameGuess);
+
   const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
   core.info('installing plugin...');
   const pluginResult = await exec.exec('helm', [
     'plugin',
     'install',
     'https://github.com/thynquest/helm-pack.git'
-  ], {
-    listeners: {
-      stderr: data => core.error(data.toString()),
-      stdout: data => core.info(data.toString())
-    }
-  });
-  core.info("plugin installed ok");
+  ]);
+
+  core.info('plugin installed: ' + pluginResult);
 
   await exec.exec('helm', [
     'pack',
-    options.helmChartFilename,
+    options.helmChartFilePath,
     '--version',
     chartVersion,
     '--app-version',
@@ -96,6 +110,8 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     '--set',
     `image=${chartVersion}`
   ]);
+
+  await exec.exec('ls -al');
 
   // publish helm chart?
   if (!!options.helmRepoUrl) {
@@ -106,11 +122,16 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     ]);
     await exec.exec('helm', ['repo', 'add', 'vendanor', options.helmRepoUrl]);
     await exec.exec('helm', ['repo', 'update']);
-    await exec.exec('helm', ['push', chartFilename, options.helmOrganization]);
+    await exec.exec('helm', [
+      'push',
+      chartFilenameToPush,
+      options.helmOrganization,
+      '--username',
+      options.helmRepoUsername,
+      '--password',
+      options.helmRepoPassword
+    ]);
   }
-
-  // === Connect K8S ===
-  await loginAzure(options.azureToken);
 
   // === Install or upgrade Helm preview release! ===
   core.info('Ready to deploy to AKS...');
@@ -121,7 +142,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const finalResult = await exec.exec('helm', [
     'upgrade',
     helmReleaseName,
-    chartFilename,
+    chartFilenameToPush,
     '--install',
     `--set namespace=${options.helmNamespace}`,
     `--set image=${dockerImageVersion}`,
@@ -152,6 +173,8 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     }
   }
 
+  core.info('Posting message to github PR...');
+
   const body = getMessage(finalResult);
 
   const previousComment = await findPreviousComment(
@@ -181,10 +204,14 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
 
   core.info('Message posted in PR!');
 
-  return {
+  const result = {
     previewUrl: completePreviewUrl,
     helmReleaseName,
     dockerImageVersion,
     success: finalResult === 0 // hmm...?
   };
+
+  core.info('All done! Printing returned result..');
+  core.info(JSON.stringify(result, null, 2));
+  return result;
 }
