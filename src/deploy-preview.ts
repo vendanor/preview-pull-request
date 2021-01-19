@@ -39,14 +39,14 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   // build docker image
   const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
   const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
-  // TODO: add github.workspace last arg?
   core.info('Building docker image: ' + dockerImageVersion);
   const dockerBuildResult = await runCmd('docker', [
     'build',
     '-t',
     dockerImageVersion,
     '-f',
-    options.dockerFile
+    options.dockerFile,
+    '.'
   ]);
   core.info('Build docker image result code:' + dockerBuildResult.resultCode);
   core.info(dockerBuildResult.output);
@@ -149,6 +149,6 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     previewUrl: completePreviewUrl,
     helmReleaseName,
     dockerImageVersion,
-    success: finalResult === 0 // hmm...
+    success: finalResult === 0 // hmm...?
   }
 }
