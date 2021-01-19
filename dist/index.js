@@ -304,11 +304,18 @@ function deployPreview(options) {
         const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
         const chartFilename = `${options.helmChartFilename}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
         const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
-        yield exec.exec('helm', [
+        core.info('installing plugin...');
+        const pluginResult = yield exec.exec('helm', [
             'plugin',
             'install',
             'https://github.com/thynquest/helm-pack.git'
-        ]);
+        ], {
+            listeners: {
+                stderr: data => core.error(data.toString()),
+                stdout: data => core.info(data.toString())
+            }
+        });
+        core.info("plugin installed ok");
         yield exec.exec('helm', [
             'pack',
             options.helmChartFilename,

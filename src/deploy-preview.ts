@@ -73,11 +73,18 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
   const chartFilename = `${options.helmChartFilename}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
   const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
-  await exec.exec('helm', [
+  core.info('installing plugin...');
+  const pluginResult = await exec.exec('helm', [
     'plugin',
     'install',
     'https://github.com/thynquest/helm-pack.git'
-  ]);
+  ], {
+    listeners: {
+      stderr: data => core.error(data.toString()),
+      stdout: data => core.info(data.toString())
+    }
+  });
+  core.info("plugin installed ok");
 
   await exec.exec('helm', [
     'pack',
