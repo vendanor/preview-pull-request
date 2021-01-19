@@ -268,7 +268,7 @@ const az_login_1 = __webpack_require__(1579);
  */
 function deployPreview(options) {
     return __awaiter(this, void 0, void 0, function* () {
-        core.info('Starting deploy preview..');
+        core.info('Starting deploy preview...9');
         // Gather info
         const sha7 = yield github_util_1.getLatestCommitShortSha(options.githubToken);
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
@@ -279,7 +279,6 @@ function deployPreview(options) {
         // build docker image
         const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
         const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
-        core.info(JSON.stringify(context, null, 2));
         core.info('Building docker image: ' + dockerImageVersion);
         const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
         yield exec.exec(`pwd`);

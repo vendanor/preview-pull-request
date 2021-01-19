@@ -26,7 +26,7 @@ import { loginAzure } from './az-login';
  * @param options
  */
 export async function deployPreview(options: Options): Promise<CommandResult> {
-  core.info('Starting deploy preview..');
+  core.info('Starting deploy preview...9');
 
   // Gather info
   const sha7 = await getLatestCommitShortSha(options.githubToken);
