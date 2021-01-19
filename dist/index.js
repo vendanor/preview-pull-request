@@ -262,7 +262,6 @@ const az_login_1 = __webpack_require__(1579);
  * - publish helm chart to chart repo (mandatory or optional?)
  * - deploy chart / preview in Kubernetes
  * - add a preview comment to pull request
- * - message teams?
  * - return preview url, helm chart name, docker image name
  * @param options
  */
@@ -287,9 +286,6 @@ function deployPreview(options) {
         yield exec.exec(`pwd`);
         yield exec.exec(`ls -al`);
         yield exec.exec(`ls -al ${workspaceFolder}`);
-        // GITHUB_WORKSPACE:
-        // /home/runner/work/VnConnectApp/VnConnectApp
-        // COPY failed: stat /var/lib/docker/tmp/docker-builder387360906/dist: no such file or directory
         const dockerBuildResult = yield run_cmd_1.runCmd('docker', [
             'build',
             workspaceFolder,
@@ -300,22 +296,13 @@ function deployPreview(options) {
         ]);
         core.info('Build docker image result code:' + dockerBuildResult.resultCode);
         core.info(dockerBuildResult.output);
-        // publish docker image:
         core.info('Push docker image...');
         const dockerPushResult = yield run_cmd_1.runCmd('docker', ['push', dockerImageName]);
         core.info('Push docker image result: ' + dockerPushResult.resultCode);
         // === HELM chart ===
         const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
-        // charts/vn-connect-app
-        // build folder: .
-        // didnt work: not found..:
-        const temporaryHelmChartFilename = `${options.helmChartFilePath}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
-        const chartWithoutFolder = options.helmChartFilePath.replace(/^.*[\\\/]/, '');
-        const chartFilenameGuess = `${chartWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
-        const chartFilenameToPush = chartFilenameGuess;
-        core.info('nope: ' + temporaryHelmChartFilename);
-        core.info('without: ' + chartWithoutFolder);
-        core.info('guess:' + chartFilenameGuess);
+        const chartFilenameWithoutFolder = options.helmChartFilePath.replace(/^.*[\\\/]/, '');
+        const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
         const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
         core.info('installing plugin...');
         const pluginResult = yield exec.exec('helm', [
@@ -337,12 +324,22 @@ function deployPreview(options) {
         yield exec.exec('ls -al');
         // publish helm chart?
         if (!!options.helmRepoUrl) {
+            core.info('Publishing helm chart..');
             yield exec.exec('helm', [
                 'plugin',
                 'install',
                 'https://github.com/chartmuseum/helm-push.git'
             ]);
-            yield exec.exec('helm', ['repo', 'add', 'vendanor', options.helmRepoUrl]);
+            yield exec.exec('helm', [
+                'repo',
+                'add',
+                'vendanor',
+                options.helmRepoUrl,
+                '--username',
+                options.helmRepoUsername,
+                '--password',
+                options.helmRepoPassword
+            ]);
             yield exec.exec('helm', ['repo', 'update']);
             yield exec.exec('helm', [
                 'push',
@@ -353,6 +350,9 @@ function deployPreview(options) {
                 '--password',
                 options.helmRepoPassword
             ]);
+        }
+        else {
+            core.info('helm-repo-url was not set, skipping publish helm chart');
         }
         // === Install or upgrade Helm preview release! ===
         core.info('Ready to deploy to AKS...');
@@ -365,12 +365,13 @@ function deployPreview(options) {
             helmReleaseName,
             chartFilenameToPush,
             '--install',
-            `--set namespace=${options.helmNamespace}`,
-            `--set image=${dockerImageVersion}`,
-            `--set pullsecret=${options.dockerPullSecret}`,
-            `--set url=${completePreviewUrl}`,
-            `--set appname=${previewUrlIdentifier}`,
-            `--set containersuffix=${githubRunNumber}`
+            '--create-namespace',
+            `--${options.helmKeyNamespace} ${options.helmNamespace}`,
+            `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
+            `--set ${options.helmKeyImage}=${dockerImageVersion}`,
+            `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
+            `--set ${options.helmKeyUrl}=${completePreviewUrl}`,
+            `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
         ]);
         // === Post comment with preview url to Pull Request ===
         const header = `=== VnKubePreview ===`;
@@ -773,7 +774,7 @@ function run() {
                 dockerTagMajor: core.getInput('docker-tag-major'),
                 dockerFile: core.getInput('docker-file'),
                 dockerUsername: core.getInput('docker-username'),
-                dockerPassword: core.getInput('docker-password', { required: false }),
+                dockerPassword: core.getInput('docker-password'),
                 dockerPullSecret: core.getInput('docker-pullsecret'),
                 hashSalt: core.getInput('hash-salt'),
                 helmTagMajor: core.getInput('helm-tag-major'),
@@ -782,7 +783,13 @@ function run() {
                 helmOrganization: core.getInput('helm-organization'),
                 baseUrl: core.getInput('base-url'),
                 helmRepoUsername: core.getInput('helm-repo-user'),
-                helmRepoPassword: core.getInput('helm-repo-password')
+                helmRepoPassword: core.getInput('helm-repo-password'),
+                helmKeyAppName: core.getInput('helm-key-appname'),
+                helmKeyContainerSuffix: core.getInput('helm-key-containersuffix'),
+                helmKeyImage: core.getInput('helm-key-image'),
+                helmKeyNamespace: core.getInput('helm-key-namespace'),
+                helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
+                helmKeyUrl: core.getInput('helm-key-url'),
             };
             if (options.cmd === 'deploy') {
                 const result = yield deploy_preview_1.deployPreview(options);

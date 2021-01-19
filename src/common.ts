@@ -1,6 +1,12 @@
 export type Command = 'deploy' | 'remove';
 
 export interface Options {
+  helmKeyNamespace: string;
+  helmKeyAppName: string;
+  helmKeyImage: string;
+  helmKeyPullSecret: string;
+  helmKeyUrl: string;
+  helmKeyContainerSuffix: string;
   helmRepoUsername: string;
   helmRepoPassword: string;
   baseUrl: string;

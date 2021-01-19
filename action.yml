@@ -75,6 +75,32 @@ inputs:
     default: "1.0"
     description: "Major tag when tagging helm chart previews, example: 1.0"
 
+  helm-replace-key-namespace:
+    required: true
+    default: "namespace"
+    description: "The key to in your helm chart to set when installing preview"
+  helm-replace-key-appname:
+    required: true
+    default: "appname"
+    description: "The key to set in your helm chart to set when installing preview"
+  helm-replace-key-image:
+    required: true
+    default: "image"
+    description: "The key to set in your helm chart to set when installing preview"
+  helm-replace-key-pullsecret:
+    required: true
+    default: "pullsecret"
+    description: "The key to set in your helm chart to set when installing preview"
+  helm-replace-key-url:
+    required: true
+    default: "url"
+    description: "The key to set in your helm chart to set when installing preview"
+  helm-replace-key-containersuffix:
+    required: true
+    default: "containersuffix"
+    description: "The key to set in your helm chart to set when installing preview"
+
+
   # idea, use this for 1) docker image url 2) helm chart url 3) preview url?  => rename to preview-name?
   app-name:
     required: true

@@ -28,7 +28,7 @@ async function run(): Promise<void> {
       dockerTagMajor: core.getInput('docker-tag-major'),
       dockerFile: core.getInput('docker-file'),
       dockerUsername: core.getInput('docker-username'),
-      dockerPassword: core.getInput('docker-password', { required: false }),
+      dockerPassword: core.getInput('docker-password'),
       dockerPullSecret: core.getInput('docker-pullsecret'),
       hashSalt: core.getInput('hash-salt'),
       helmTagMajor: core.getInput('helm-tag-major'),
@@ -37,7 +37,13 @@ async function run(): Promise<void> {
       helmOrganization: core.getInput('helm-organization'),
       baseUrl: core.getInput('base-url'),
       helmRepoUsername: core.getInput('helm-repo-user'),
-      helmRepoPassword: core.getInput('helm-repo-password')
+      helmRepoPassword: core.getInput('helm-repo-password'),
+      helmKeyAppName: core.getInput('helm-key-appname'),
+      helmKeyContainerSuffix: core.getInput('helm-key-containersuffix'),
+      helmKeyImage: core.getInput('helm-key-image'),
+      helmKeyNamespace: core.getInput('helm-key-namespace'),
+      helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
+      helmKeyUrl: core.getInput('helm-key-url'),
     };
 
     if (options.cmd === 'deploy') {

@@ -22,7 +22,6 @@ import { loginAzure } from './az-login';
  * - publish helm chart to chart repo (mandatory or optional?)
  * - deploy chart / preview in Kubernetes
  * - add a preview comment to pull request
- * - message teams?
  * - return preview url, helm chart name, docker image name
  * @param options
  */
@@ -53,12 +52,6 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   await exec.exec(`pwd`);
   await exec.exec(`ls -al`);
   await exec.exec(`ls -al ${workspaceFolder}`);
-
-  // GITHUB_WORKSPACE:
-  // /home/runner/work/VnConnectApp/VnConnectApp
-
-  // COPY failed: stat /var/lib/docker/tmp/docker-builder387360906/dist: no such file or directory
-
   const dockerBuildResult = await runCmd('docker', [
     'build',
     workspaceFolder,
@@ -69,26 +62,17 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   ]);
   core.info('Build docker image result code:' + dockerBuildResult.resultCode);
   core.info(dockerBuildResult.output);
-  // publish docker image:
-
   core.info('Push docker image...');
   const dockerPushResult = await runCmd('docker', ['push', dockerImageName]);
   core.info('Push docker image result: ' + dockerPushResult.resultCode);
 
   // === HELM chart ===
   const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
-
-  // charts/vn-connect-app
-  // build folder: .
-
-  // didnt work: not found..:
-  const temporaryHelmChartFilename = `${options.helmChartFilePath}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
-  const chartWithoutFolder = options.helmChartFilePath.replace(/^.*[\\\/]/, '');
-  const chartFilenameGuess = `${chartWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
-  const chartFilenameToPush = chartFilenameGuess;
-  core.info('nope: ' + temporaryHelmChartFilename);
-  core.info('without: ' + chartWithoutFolder);
-  core.info('guess:' + chartFilenameGuess);
+  const chartFilenameWithoutFolder = options.helmChartFilePath.replace(
+    /^.*[\\\/]/,
+    ''
+  );
+  const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
 
   const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
   core.info('installing plugin...');
@@ -115,12 +99,22 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
 
   // publish helm chart?
   if (!!options.helmRepoUrl) {
+    core.info('Publishing helm chart..');
     await exec.exec('helm', [
       'plugin',
       'install',
       'https://github.com/chartmuseum/helm-push.git'
     ]);
-    await exec.exec('helm', ['repo', 'add', 'vendanor', options.helmRepoUrl]);
+    await exec.exec('helm', [
+      'repo',
+      'add',
+      'vendanor',
+      options.helmRepoUrl,
+      '--username',
+      options.helmRepoUsername,
+      '--password',
+      options.helmRepoPassword
+    ]);
     await exec.exec('helm', ['repo', 'update']);
     await exec.exec('helm', [
       'push',
@@ -131,6 +125,8 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
       '--password',
       options.helmRepoPassword
     ]);
+  } else {
+    core.info('helm-repo-url was not set, skipping publish helm chart');
   }
 
   // === Install or upgrade Helm preview release! ===
@@ -144,12 +140,13 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     helmReleaseName,
     chartFilenameToPush,
     '--install',
-    `--set namespace=${options.helmNamespace}`,
-    `--set image=${dockerImageVersion}`,
-    `--set pullsecret=${options.dockerPullSecret}`,
-    `--set url=${completePreviewUrl}`,
-    `--set appname=${previewUrlIdentifier}`,
-    `--set containersuffix=${githubRunNumber}`
+    '--create-namespace',
+    `--${options.helmKeyNamespace} ${options.helmNamespace}`,
+    `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
+    `--set ${options.helmKeyImage}=${dockerImageVersion}`,
+    `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
+    `--set ${options.helmKeyUrl}=${completePreviewUrl}`,
+    `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
   ]);
 
   // === Post comment with preview url to Pull Request ===
