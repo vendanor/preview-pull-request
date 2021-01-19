@@ -497,7 +497,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.generateHash = void 0;
 const sha256_1 = __importDefault(__webpack_require__(3941));
 function generateHash(prId, salt) {
-    return sha256_1.default(`${prId}${salt}`).toString();
+    return sha256_1.default(`${prId}${salt}`).toString().substr(0, 7);
 }
 exports.generateHash = generateHash;
 
