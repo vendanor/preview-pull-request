@@ -305,6 +305,11 @@ function deployPreview(options) {
         const chartFilename = `${options.helmChartFilename}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
         const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
         yield exec.exec('helm', [
+            'plugin',
+            'install',
+            'https://github.com/thynquest/helm-pack.git'
+        ]);
+        yield exec.exec('helm', [
             'pack',
             options.helmChartFilename,
             '--version',
@@ -373,7 +378,7 @@ function deployPreview(options) {
         else {
             yield github_util_1.createComment(options.githubToken, context.repo, pullRequestId, body, header);
         }
-        core.info("Message posted in PR!");
+        core.info('Message posted in PR!');
         return {
             previewUrl: completePreviewUrl,
             helmReleaseName,
