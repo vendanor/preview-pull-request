@@ -279,14 +279,16 @@ function deployPreview(options) {
         // build docker image
         const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
         const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+        core.info(JSON.stringify(context, null, 2));
         core.info('Building docker image: ' + dockerImageVersion);
+        const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
         const dockerBuildResult = yield run_cmd_1.runCmd('docker', [
             'build',
             '-t',
             dockerImageVersion,
             '-f',
             options.dockerFile,
-            '.'
+            workspaceFolder
         ]);
         core.info('Build docker image result code:' + dockerBuildResult.resultCode);
         core.info(dockerBuildResult.output);
@@ -376,6 +378,41 @@ function deployPreview(options) {
     });
 }
 exports.deployPreview = deployPreview;
+
+
+/***/ }),
+
+/***/ 4809:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.dilbert = void 0;
+exports.dilbert = `
+    (\`'\`'\`'\`')
+     |      |
+     |      |
+    (|-()()-|)
+     | (__) |
+     |      |
+     |______|
+    /._/\\/\\_.\\
+   /  , /\\    \\
+  ; / \\\\|| __\\ ;
+  |-|  './ \\/|-|
+  \\ |   |    | /
+   '\\___|____/\`
+     |--LI--|
+     |  |   |
+     |  |   |
+     |  |   |
+     |  |   |
+     |  |   |
+     |__|___|
+ .----'=||='----.
+ \`""""\`"  "\`""""\`
+`;
 
 
 /***/ }),
@@ -674,6 +711,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__webpack_require__(2186));
 const clear_preview_1 = __webpack_require__(3353);
 const deploy_preview_1 = __webpack_require__(958);
+const dilbert_1 = __webpack_require__(4809);
 const setOutputFromResult = (result) => {
     core.setOutput('preview-url', result.previewUrl);
     core.setOutput('docker-image-version', result.dockerImageVersion);
@@ -683,6 +721,9 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');
+            core.info('');
+            core.info(dilbert_1.dilbert);
+            core.info('');
             const options = {
                 cmd: core.getInput('command', { required: true }),
                 azureToken: core.getInput('azure-token', { required: true }),

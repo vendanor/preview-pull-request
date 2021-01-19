@@ -39,14 +39,16 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   // build docker image
   const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
   const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+  core.info(JSON.stringify(context, null, 2));
   core.info('Building docker image: ' + dockerImageVersion);
+  const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
   const dockerBuildResult = await runCmd('docker', [
     'build',
     '-t',
     dockerImageVersion,
     '-f',
     options.dockerFile,
-    '.'
+    workspaceFolder
   ]);
   core.info('Build docker image result code:' + dockerBuildResult.resultCode);
   core.info(dockerBuildResult.output);

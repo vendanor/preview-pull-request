@@ -2,6 +2,7 @@ import * as core from '@actions/core';
 import { CommandResult, Options } from './common';
 import { clearPreviewsForCurrentPullRequest } from './clear-preview';
 import { deployPreview } from './deploy-preview';
+import { dilbert } from './dilbert';
 
 const setOutputFromResult = (result: CommandResult) => {
   core.setOutput('preview-url', result.previewUrl);
@@ -12,6 +13,9 @@ const setOutputFromResult = (result: CommandResult) => {
 async function run(): Promise<void> {
   try {
     core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');
+    core.info('');
+    core.info(dilbert);
+    core.info('');
     const options: Options = {
       cmd: core.getInput('command', { required: true }),
       azureToken: core.getInput('azure-token', { required: true }),
