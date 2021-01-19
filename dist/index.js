@@ -282,13 +282,19 @@ function deployPreview(options) {
         core.info(JSON.stringify(context, null, 2));
         core.info('Building docker image: ' + dockerImageVersion);
         const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
+        yield exec.exec(`pwd`);
+        yield exec.exec(`ls -al`);
+        yield exec.exec(`ls -al ${workspaceFolder}`);
+        // GITHUB_WORKSPACE:
+        // /home/runner/work/VnConnectApp/VnConnectApp
+        // COPY failed: stat /var/lib/docker/tmp/docker-builder387360906/dist: no such file or directory
         const dockerBuildResult = yield run_cmd_1.runCmd('docker', [
             'build',
+            workspaceFolder,
             '-t',
             dockerImageVersion,
             '-f',
-            options.dockerFile,
-            workspaceFolder
+            options.dockerFile
         ]);
         core.info('Build docker image result code:' + dockerBuildResult.resultCode);
         core.info(dockerBuildResult.output);
