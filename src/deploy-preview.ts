@@ -31,10 +31,6 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   // We can set env.HELM_KUBECONTEXT I think..
 
   core.info('get helm version');
-  await exec.exec('printenv');
-  await exec.exec(`HELM_KUBECONTEXT="${options.kubeConfig}"`);
-  await exec.exec('printenv');
-
   await exec.exec('helm version', ['--kube-context', options.kubeConfig]);
   core.info('after get helm version');
 
