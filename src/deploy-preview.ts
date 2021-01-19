@@ -6,7 +6,8 @@ import {
   findPreviousComment,
   getCurrentContext,
   getCurrentPullRequestId,
-  getLatestCommitShortSha, updateComment
+  getLatestCommitShortSha,
+  updateComment
 } from './github-util';
 import { generateHash } from './generate-hash';
 import { runCmd } from './run-cmd';
@@ -72,6 +73,12 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
   const chartFilename = `${options.helmChartFilename}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
   const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+  await exec.exec('helm', [
+    'plugin',
+    'install',
+    'https://github.com/thynquest/helm-pack.git'
+  ]);
+
   await exec.exec('helm', [
     'pack',
     options.helmChartFilename,
@@ -148,17 +155,29 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   );
 
   if (previousComment) {
-    await updateComment(options.githubToken, context.repo, previousComment.id, body, header);
+    await updateComment(
+      options.githubToken,
+      context.repo,
+      previousComment.id,
+      body,
+      header
+    );
   } else {
-    await createComment(options.githubToken, context.repo, pullRequestId, body, header);
+    await createComment(
+      options.githubToken,
+      context.repo,
+      pullRequestId,
+      body,
+      header
+    );
   }
 
-  core.info("Message posted in PR!");
+  core.info('Message posted in PR!');
 
   return {
     previewUrl: completePreviewUrl,
     helmReleaseName,
     dockerImageVersion,
     success: finalResult === 0 // hmm...?
-  }
+  };
 }
