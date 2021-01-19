@@ -137,7 +137,6 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     helmReleaseName,
     chartFilenameToPush,
     '--install',
-    '--create-namespace',
     `--${options.helmKeyNamespace} ${options.helmNamespace}`,
     `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
     `--set ${options.helmKeyImage}=${dockerImageVersion}`,
