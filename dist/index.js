@@ -270,9 +270,6 @@ function deployPreview(options) {
         core.info('Starting deploy preview...');
         // We can set env.HELM_KUBECONTEXT I think..
         core.info('get helm version');
-        yield exec.exec('printenv');
-        yield exec.exec(`HELM_KUBECONTEXT="${options.kubeConfig}"`);
-        yield exec.exec('printenv');
         yield exec.exec('helm version', ['--kube-context', options.kubeConfig]);
         core.info('after get helm version');
         // Login to azure and github container registry

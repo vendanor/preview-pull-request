@@ -2,12 +2,9 @@ import * as core from '@actions/core';
 import * as exec from '@actions/exec';
 import { CommandResult, Options } from './common';
 import {
-  createComment,
-  findPreviousComment,
   getCurrentContext,
   getCurrentPullRequestId,
   getLatestCommitShortSha,
-  updateComment
 } from './github-util';
 import { generateHash } from './generate-hash';
 import { runCmd } from './run-cmd';
