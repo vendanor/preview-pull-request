@@ -144,58 +144,6 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
   ]);
 
-  // === Post comment with preview url to Pull Request ===
-  const header = `=== VnKubePreview ===`;
-
-  function getMessage(resultCode: number) {
-    if (resultCode === 0) {
-      return `
-        ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
-        ## 🔥🔥 Preview :: Great success! 🔥🔥
-        Your preview (${sha7}) is available here:
-        <https://${completePreviewUrl}>
-      `;
-    } else {
-      return `
-        ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
-        ## 🚨🚨 Preview :: Last job failed! 🚨🚨
-        Your preview (${sha7}) is (not yet) available here:
-        <https://${completePreviewUrl}>
-      `;
-    }
-  }
-
-  core.info('Posting message to github PR...');
-
-  const body = getMessage(finalResult);
-
-  const previousComment = await findPreviousComment(
-    options.githubToken,
-    context.repo,
-    pullRequestId,
-    header
-  );
-
-  if (previousComment) {
-    await updateComment(
-      options.githubToken,
-      context.repo,
-      previousComment.id,
-      body,
-      header
-    );
-  } else {
-    await createComment(
-      options.githubToken,
-      context.repo,
-      pullRequestId,
-      body,
-      header
-    );
-  }
-
-  core.info('Message posted in PR!');
-
   const result = {
     previewUrl: completePreviewUrl,
     helmReleaseName,
