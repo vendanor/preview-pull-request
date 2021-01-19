@@ -369,36 +369,6 @@ function deployPreview(options) {
             `--set ${options.helmKeyUrl}=${completePreviewUrl}`,
             `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
         ]);
-        // === Post comment with preview url to Pull Request ===
-        const header = `=== VnKubePreview ===`;
-        function getMessage(resultCode) {
-            if (resultCode === 0) {
-                return `
-        ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
-        ## 🔥🔥 Preview :: Great success! 🔥🔥
-        Your preview (${sha7}) is available here:
-        <https://${completePreviewUrl}>
-      `;
-            }
-            else {
-                return `
-        ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
-        ## 🚨🚨 Preview :: Last job failed! 🚨🚨
-        Your preview (${sha7}) is (not yet) available here:
-        <https://${completePreviewUrl}>
-      `;
-            }
-        }
-        core.info('Posting message to github PR...');
-        const body = getMessage(finalResult);
-        const previousComment = yield github_util_1.findPreviousComment(options.githubToken, context.repo, pullRequestId, header);
-        if (previousComment) {
-            yield github_util_1.updateComment(options.githubToken, context.repo, previousComment.id, body, header);
-        }
-        else {
-            yield github_util_1.createComment(options.githubToken, context.repo, pullRequestId, body, header);
-        }
-        core.info('Message posted in PR!');
         const result = {
             previewUrl: completePreviewUrl,
             helmReleaseName,
@@ -746,6 +716,7 @@ const core = __importStar(__webpack_require__(2186));
 const clear_preview_1 = __webpack_require__(3353);
 const deploy_preview_1 = __webpack_require__(958);
 const dilbert_1 = __webpack_require__(4809);
+const sticky_comment_1 = __webpack_require__(1788);
 const setOutputFromResult = (result) => {
     core.setOutput('preview-url', result.previewUrl);
     core.setOutput('docker-image-version', result.dockerImageVersion);
@@ -753,51 +724,54 @@ const setOutputFromResult = (result) => {
 };
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
+        const options = {
+            cmd: core.getInput('command', { required: true }),
+            azureToken: core.getInput('azure-token', { required: true }),
+            appName: core.getInput('app-name'),
+            helmNamespace: core.getInput('helm-namespace'),
+            githubToken: core.getInput('token'),
+            dockerImageName: core.getInput('docker-image-name'),
+            dockerRegistry: core.getInput('docker-registry'),
+            dockerOrganization: core.getInput('docker-organization'),
+            dockerTagMajor: core.getInput('docker-tag-major'),
+            dockerFile: core.getInput('docker-file'),
+            dockerUsername: core.getInput('docker-username'),
+            dockerPassword: core.getInput('docker-password'),
+            dockerPullSecret: core.getInput('docker-pullsecret'),
+            hashSalt: core.getInput('hash-salt'),
+            helmTagMajor: core.getInput('helm-tag-major'),
+            helmChartFilePath: core.getInput('helm-chart'),
+            helmRepoUrl: core.getInput('helm-repo-url'),
+            helmOrganization: core.getInput('helm-organization'),
+            baseUrl: core.getInput('base-url'),
+            helmRepoUsername: core.getInput('helm-repo-user'),
+            helmRepoPassword: core.getInput('helm-repo-password'),
+            helmKeyAppName: core.getInput('helm-key-appname'),
+            helmKeyContainerSuffix: core.getInput('helm-key-containersuffix'),
+            helmKeyImage: core.getInput('helm-key-image'),
+            helmKeyNamespace: core.getInput('helm-key-namespace'),
+            helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
+            helmKeyUrl: core.getInput('helm-key-url'),
+        };
         try {
             core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');
             core.info('');
             core.info(dilbert_1.dilbert);
             core.info('');
-            const options = {
-                cmd: core.getInput('command', { required: true }),
-                azureToken: core.getInput('azure-token', { required: true }),
-                appName: core.getInput('app-name'),
-                helmNamespace: core.getInput('helm-namespace'),
-                githubToken: core.getInput('token'),
-                dockerImageName: core.getInput('docker-image-name'),
-                dockerRegistry: core.getInput('docker-registry'),
-                dockerOrganization: core.getInput('docker-organization'),
-                dockerTagMajor: core.getInput('docker-tag-major'),
-                dockerFile: core.getInput('docker-file'),
-                dockerUsername: core.getInput('docker-username'),
-                dockerPassword: core.getInput('docker-password'),
-                dockerPullSecret: core.getInput('docker-pullsecret'),
-                hashSalt: core.getInput('hash-salt'),
-                helmTagMajor: core.getInput('helm-tag-major'),
-                helmChartFilePath: core.getInput('helm-chart'),
-                helmRepoUrl: core.getInput('helm-repo-url'),
-                helmOrganization: core.getInput('helm-organization'),
-                baseUrl: core.getInput('base-url'),
-                helmRepoUsername: core.getInput('helm-repo-user'),
-                helmRepoPassword: core.getInput('helm-repo-password'),
-                helmKeyAppName: core.getInput('helm-key-appname'),
-                helmKeyContainerSuffix: core.getInput('helm-key-containersuffix'),
-                helmKeyImage: core.getInput('helm-key-image'),
-                helmKeyNamespace: core.getInput('helm-key-namespace'),
-                helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
-                helmKeyUrl: core.getInput('helm-key-url'),
-            };
             if (options.cmd === 'deploy') {
                 const result = yield deploy_preview_1.deployPreview(options);
                 setOutputFromResult(result);
+                yield sticky_comment_1.postOrUpdateGithubComment(true, options, result.previewUrl);
             }
             else {
                 const result = yield clear_preview_1.clearPreviewsForCurrentPullRequest(options);
                 setOutputFromResult(result);
+                // TODO: post update message?
             }
             core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
         }
         catch (error) {
+            yield sticky_comment_1.postOrUpdateGithubComment(false, options);
             core.error(error);
             core.setFailed(error.message);
         }
@@ -876,6 +850,79 @@ function runCmd(cmd, args, silent) {
     });
 }
 exports.runCmd = runCmd;
+
+
+/***/ }),
+
+/***/ 1788:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.postOrUpdateGithubComment = void 0;
+const core = __importStar(__webpack_require__(2186));
+const github_util_1 = __webpack_require__(2762);
+function postOrUpdateGithubComment(success, options, completePreviewUrl) {
+    return __awaiter(this, void 0, void 0, function* () {
+        // === Post comment with preview url to Pull Request ===
+        const header = `=== VnKubePreview ===`;
+        const context = yield github_util_1.getCurrentContext();
+        const sha7 = yield github_util_1.getLatestCommitShortSha(options.githubToken);
+        const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
+        core.info('Posting message to github PR...');
+        const body = success
+            ? `
+        ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
+        ## 🔥🔥 Preview :: Great success! 🔥🔥
+        Your preview (${sha7}) is available here:
+        <https://${completePreviewUrl}>
+      `
+            : `
+        ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
+        ## 🚨🚨 Preview :: Last job failed! 🚨🚨
+        Your preview (${sha7}) is (not yet) available here:
+        <https://${completePreviewUrl}>
+      `;
+        const previousComment = yield github_util_1.findPreviousComment(options.githubToken, context.repo, pullRequestId, header);
+        if (previousComment) {
+            yield github_util_1.updateComment(options.githubToken, context.repo, previousComment.id, body, header);
+        }
+        else {
+            yield github_util_1.createComment(options.githubToken, context.repo, pullRequestId, body, header);
+        }
+        core.info('Message posted in PR!');
+    });
+}
+exports.postOrUpdateGithubComment = postOrUpdateGithubComment;
 
 
 /***/ }),
