@@ -466,6 +466,7 @@ function loginDockerRegistry(username, password, registry) {
         }
         core.info(`🔑 Logging into ${registry}...`);
         const loginResult = yield run_cmd_1.runCmd('docker', [
+            'login',
             '--username',
             username,
             '--password',
