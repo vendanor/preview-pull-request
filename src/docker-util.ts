@@ -11,6 +11,7 @@ export async function loginDockerRegistry(
   }
   core.info(`🔑 Logging into ${registry}...`);
   const loginResult = await runCmd('docker', [
+    'login',
     '--username',
     username,
     '--password',
