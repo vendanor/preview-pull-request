@@ -19,6 +19,9 @@ inputs:
   azure-token:
     required: true
     description: "Your Azure token"
+  kube-config:
+    required: true
+    description: "KUBECONFIG"
 
   docker-file:
     required: false

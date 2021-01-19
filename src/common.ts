@@ -25,6 +25,7 @@ export interface Options {
   dockerImageName: string;
   hashSalt: string;
   githubToken: string;
+  kubeConfig: string;
   helmNamespace: string;
   appName: string;
   cmd: Command | string;

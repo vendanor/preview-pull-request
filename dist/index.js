@@ -269,7 +269,7 @@ function deployPreview(options) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting deploy preview...');
         core.info('get helm version');
-        yield exec.exec('helm version');
+        yield exec.exec('helm version', ['--kube-context', options.kubeConfig]);
         core.info('after get helm version');
         // Login to azure and github container registry
         yield az_login_1.loginAzure(options.azureToken);
@@ -754,6 +754,7 @@ function run() {
             helmKeyNamespace: core.getInput('helm-key-namespace'),
             helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
             helmKeyUrl: core.getInput('helm-key-url'),
+            kubeConfig: core.getInput('kube-config')
         };
         try {
             core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');

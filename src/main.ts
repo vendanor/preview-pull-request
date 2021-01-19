@@ -40,7 +40,7 @@ async function run(): Promise<void> {
     helmKeyNamespace: core.getInput('helm-key-namespace'),
     helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
     helmKeyUrl: core.getInput('helm-key-url'),
-
+    kubeConfig: core.getInput('kube-config')
   };
 
 

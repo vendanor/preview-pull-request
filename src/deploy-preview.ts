@@ -29,7 +29,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Starting deploy preview...');
 
   core.info('get helm version');
-  await exec.exec('helm version');
+  await exec.exec('helm version', ['--kube-context', options.kubeConfig]);
   core.info('after get helm version');
 
   // Login to azure and github container registry
