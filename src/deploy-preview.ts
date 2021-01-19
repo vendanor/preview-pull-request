@@ -42,13 +42,22 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info(JSON.stringify(context, null, 2));
   core.info('Building docker image: ' + dockerImageVersion);
   const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
+  await exec.exec(`pwd`);
+  await exec.exec(`ls -al`);
+  await exec.exec(`ls -al ${workspaceFolder}`);
+
+  // GITHUB_WORKSPACE:
+  // /home/runner/work/VnConnectApp/VnConnectApp
+
+  // COPY failed: stat /var/lib/docker/tmp/docker-builder387360906/dist: no such file or directory
+
   const dockerBuildResult = await runCmd('docker', [
     'build',
+    workspaceFolder,
     '-t',
     dockerImageVersion,
     '-f',
-    options.dockerFile,
-    workspaceFolder
+    options.dockerFile
   ]);
   core.info('Build docker image result code:' + dockerBuildResult.resultCode);
   core.info(dockerBuildResult.output);
