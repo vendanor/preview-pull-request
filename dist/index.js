@@ -268,6 +268,7 @@ const az_login_1 = __webpack_require__(1579);
 function deployPreview(options) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting deploy preview...');
+        yield exec.exec('helm version');
         // Login to azure and github container registry
         yield az_login_1.loginAzure(options.azureToken);
         yield docker_util_1.loginContainerRegistry(options.dockerUsername, options.dockerPassword, options.dockerRegistry);

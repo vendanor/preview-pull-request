@@ -28,6 +28,8 @@ import { loginAzure } from './az-login';
 export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Starting deploy preview...');
 
+  await exec.exec('helm version');
+
   // Login to azure and github container registry
   await loginAzure(options.azureToken);
   await loginContainerRegistry(
