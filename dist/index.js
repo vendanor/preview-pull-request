@@ -279,14 +279,14 @@ function deployPreview(options) {
         // build docker image
         const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
         const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
-        // TODO: add github.workspace last arg?
         core.info('Building docker image: ' + dockerImageVersion);
         const dockerBuildResult = yield run_cmd_1.runCmd('docker', [
             'build',
             '-t',
             dockerImageVersion,
             '-f',
-            options.dockerFile
+            options.dockerFile,
+            '.'
         ]);
         core.info('Build docker image result code:' + dockerBuildResult.resultCode);
         core.info(dockerBuildResult.output);
@@ -371,7 +371,7 @@ function deployPreview(options) {
             previewUrl: completePreviewUrl,
             helmReleaseName,
             dockerImageVersion,
-            success: finalResult === 0 // hmm...
+            success: finalResult === 0 // hmm...?
         };
     });
 }
