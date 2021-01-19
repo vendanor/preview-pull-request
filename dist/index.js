@@ -362,7 +362,6 @@ function deployPreview(options) {
             helmReleaseName,
             chartFilenameToPush,
             '--install',
-            '--create-namespace',
             `--${options.helmKeyNamespace} ${options.helmNamespace}`,
             `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
             `--set ${options.helmKeyImage}=${dockerImageVersion}`,
@@ -895,24 +894,24 @@ const github_util_1 = __webpack_require__(2762);
 function postOrUpdateGithubComment(success, options, completePreviewUrl) {
     return __awaiter(this, void 0, void 0, function* () {
         // === Post comment with preview url to Pull Request ===
-        const header = `=== VnKubePreview ===`;
+        const header = `VnKubePreview`;
         const context = yield github_util_1.getCurrentContext();
         const sha7 = yield github_util_1.getLatestCommitShortSha(options.githubToken);
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
         core.info('Posting message to github PR...');
-        const body = success
-            ? `
-        ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
-        ## 🔥🔥 Preview :: Great success! 🔥🔥
-        Your preview (${sha7}) is available here:
-        <https://${completePreviewUrl}>
-      `
-            : `
-        ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
-        ## 🚨🚨 Preview :: Last job failed! 🚨🚨
-        Your preview (${sha7}) is (not yet) available here:
-        <https://${completePreviewUrl}>
-      `;
+        const msgOk = `
+![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
+## 🔥🔥 Preview :: Great success! 🔥🔥
+Your preview (${sha7}) is available here:
+<https://${completePreviewUrl}>
+  `;
+        const msgFail = `
+![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
+## 🚨🚨 Preview :: Last job failed! 🚨🚨
+Your preview (${sha7}) is (not yet) available here:
+<https://${completePreviewUrl}>
+  `;
+        const body = success ? msgOk : msgFail;
         const previousComment = yield github_util_1.findPreviousComment(options.githubToken, context.repo, pullRequestId, header);
         if (previousComment) {
             yield github_util_1.updateComment(options.githubToken, context.repo, previousComment.id, body, header);
