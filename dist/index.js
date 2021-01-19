@@ -268,7 +268,11 @@ const az_login_1 = __nccwpck_require__(1579);
 function deployPreview(options) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting deploy preview...');
+        // We can set env.HELM_KUBECONTEXT I think..
         core.info('get helm version');
+        yield exec.exec('printenv');
+        yield exec.exec(`HELM_KUBECONTEXT="${options.kubeConfig}"`);
+        yield exec.exec('printenv');
         yield exec.exec('helm version', ['--kube-context', options.kubeConfig]);
         core.info('after get helm version');
         // Login to azure and github container registry
