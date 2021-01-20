@@ -129,12 +129,13 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
   const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
   const helmReleaseName = `preview-${options.appName}-${pullRequestId}-${hash}`;
+
   const finalResult = await exec.exec('helm', [
     'upgrade',
     helmReleaseName,
     chartFilenameToPush,
     '--install',
-    `--namespace ${options.helmNamespace}`,
+    `--namespace "${options.helmNamespace}"`,
     `--set ${options.helmKeyImage}=${dockerImageVersion}`,
     `--set ${options.helmKeyNamespace} ${options.helmNamespace}`,
     `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,

@@ -362,7 +362,7 @@ function deployPreview(options) {
             helmReleaseName,
             chartFilenameToPush,
             '--install',
-            `--namespace ${options.helmNamespace}`,
+            `--namespace "${options.helmNamespace}"`,
             `--set ${options.helmKeyImage}=${dockerImageVersion}`,
             `--set ${options.helmKeyNamespace} ${options.helmNamespace}`,
             `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
