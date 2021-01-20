@@ -12,7 +12,18 @@ and set these when packaging the helm chart.
 2. Set AKS context using `azure/k8s-set-context` in your ci/cd setup
 3. Use VnKubePreviewAction to deploy and remove preview when opening or closing pull request.
 
-Example setup:
+Example `values.yaml` in Helm chart:
+```yaml
+# Default values for myapp.
+appname: myapp
+namespace: myapp-ns
+image: ghcr.io/company/myapp:latest
+url: myapp.company.com
+pullsecret: replace
+containersuffix: production
+```
+
+Example CI/CD setup:
 ```yaml
 name: CI/CD Pull Request
 
@@ -70,7 +81,7 @@ jobs:
         uses: azure/k8s-set-context@v1
         with:
           method: kubeconfig
-          kubeconfig: ${{ env.KUBECONFIG_STAGING }}
+          kubeconfig: ${{ env.KUBECONFIG }}
 
       - name: Remove previews related to PR
         uses: vendanor/VnKubePreviewAction@v1.1 # check for latest version
@@ -78,8 +89,10 @@ jobs:
           command: remove
           app-name: myapp
           token: ${{ secrets.GITHUB_TOKEN }}
-
-
-
 ```
 
+## More info
+If your `values.yaml` is different from example above, you can change which keys to set, see [action.yml](action.yml) for more info.
+
+If you specify `helm-repo-url` when deploying, charts are also published to given helm chart repository.
+This makes it possible to also deploy a specific chart/version to production, as a release candidate etc.
