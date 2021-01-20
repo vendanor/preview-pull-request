@@ -3,7 +3,7 @@
 ## Description
 A Github Action to deploy previews of Pull Requests to AKS - Azure Kubernetes Service using Helm charts 🚀
 
-![illustration](https://github.com/vendanor/VnKubePreviewActions/blob/main/illustration.png?raw=true)
+![illustration](https://github.com/vendanor/VnKubePreviewActions/blob/main/src/illustration.png?raw=true)
 
 ## Usage
 1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, `pullsecret` and `url` is defined
