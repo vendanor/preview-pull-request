@@ -14,6 +14,10 @@ This action will:
 
 ![illustration](illustration.png)
 
+Example message in PR:
+![comment](comment.png)
+
+
 ## Usage
 1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, `pullsecret` and `url` is defined
 with values that can be overridden. VnKubePreviewAction will generate values per Pull Request
