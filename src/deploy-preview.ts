@@ -9,7 +9,6 @@ import {
 import { generateHash } from './generate-hash';
 import { runCmd } from './run-cmd';
 import { loginContainerRegistry } from './docker-util';
-import { loginAzure } from './az-login';
 
 /**
  * This will:
@@ -87,7 +86,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     `image=${chartVersion}`
   ]);
 
-  // publish helm chart?
+  // publish helm chart if helm repo url is set
   if (!!options.helmRepoUrl) {
     core.info('Publishing helm chart..');
     await exec.exec('helm', [
@@ -146,15 +145,11 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     overrides
   ]);
 
-  if (finalResult.stdErr) {
-    core.error(finalResult.stdErr);
-  }
-
   const result = {
     previewUrl: completePreviewUrl,
     helmReleaseName,
     dockerImageVersion,
-    success: finalResult.resultCode === 0 // hmm...?
+    success: finalResult.resultCode === 0
   };
 
   core.info('All done! Printing returned result..');

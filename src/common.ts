@@ -48,10 +48,6 @@ export interface HelmReleaseInfo {
 
 export type HelmListResult = Array<HelmReleaseInfo>;
 
-export interface DeploymentInfo {
-  pullRequestId: string;
-}
-
 export interface Repo {
   owner: string;
   repo: string;

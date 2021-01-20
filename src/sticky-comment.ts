@@ -14,7 +14,6 @@ export async function postOrUpdateGithubComment(
   options: Options,
   completePreviewUrl?: string
 ) {
-  // === Post comment with preview url to Pull Request ===
   const header = `VnKubePreview`;
   const context = await getCurrentContext();
   const sha7 = await getLatestCommitShortSha(options.githubToken);
@@ -31,8 +30,7 @@ Your preview (${sha7}) is available here:
   const msgFail = `
 ![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
 ## 🚨🚨 Preview :: Last job failed! 🚨🚨
-Your preview (${sha7}) is (not yet) available here:
-<https://${completePreviewUrl}>
+Your preview (${sha7}) is (not yet) available.
   `;
 
   const body = success ? msgOk : msgFail;

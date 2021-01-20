@@ -44,9 +44,7 @@ async function run(): Promise<void> {
 
   try {
     core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');
-    core.info('');
     core.info(dilbert);
-    core.info('');
 
     if (options.cmd === 'deploy') {
         const result = await deployPreview(options);
