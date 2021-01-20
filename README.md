@@ -3,6 +3,15 @@
 ## Description
 A Github Action to deploy previews of Pull Requests to AKS - Azure Kubernetes Service using Helm charts 🚀
 
+This action will:
+ - build docker image + tag with meta preview tags
+ - publish docker image to container registry
+ - build helm chart + tag with meta tags
+ - publish helm chart to chart repo (optional)
+ - deploy chart / preview in Kubernetes
+ - add a preview comment to pull request with link to preview
+ - return preview url and other useful stuff
+
 ![illustration](illustration.png)
 
 ## Usage
