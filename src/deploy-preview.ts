@@ -25,16 +25,10 @@ import { loginAzure } from './az-login';
 export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Starting deploy preview...');
 
-  // We can set env.HELM_KUBECONTEXT I think..
-
-  core.info('get helm version');
-
-
-  await exec.exec('helm version');
-  core.info('after get helm version');
-
   // Login to azure and github container registry
+  // TODO: remove?
   await loginAzure(options.azureToken);
+
   await loginContainerRegistry(
     options.dockerUsername,
     options.dockerPassword,
@@ -140,11 +134,12 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     helmReleaseName,
     chartFilenameToPush,
     '--install',
-    `--${options.helmKeyNamespace} ${options.helmNamespace}`,
-    `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
+    `--namespace ${options.helmNamespace}`,
     `--set ${options.helmKeyImage}=${dockerImageVersion}`,
+    `--set ${options.helmKeyNamespace} ${options.helmNamespace}`,
     `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
     `--set ${options.helmKeyUrl}=${completePreviewUrl}`,
+    `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
     `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
   ]);
 

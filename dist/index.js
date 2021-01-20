@@ -268,11 +268,8 @@ const az_login_1 = __webpack_require__(1579);
 function deployPreview(options) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting deploy preview...');
-        // We can set env.HELM_KUBECONTEXT I think..
-        core.info('get helm version');
-        yield exec.exec('helm version');
-        core.info('after get helm version');
         // Login to azure and github container registry
+        // TODO: remove?
         yield az_login_1.loginAzure(options.azureToken);
         yield docker_util_1.loginContainerRegistry(options.dockerUsername, options.dockerPassword, options.dockerRegistry);
         // Gather info
@@ -365,11 +362,12 @@ function deployPreview(options) {
             helmReleaseName,
             chartFilenameToPush,
             '--install',
-            `--${options.helmKeyNamespace} ${options.helmNamespace}`,
-            `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
+            `--namespace ${options.helmNamespace}`,
             `--set ${options.helmKeyImage}=${dockerImageVersion}`,
+            `--set ${options.helmKeyNamespace} ${options.helmNamespace}`,
             `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
             `--set ${options.helmKeyUrl}=${completePreviewUrl}`,
+            `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
             `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
         ]);
         const result = {
@@ -752,9 +750,9 @@ function run() {
             helmKeyAppName: core.getInput('helm-key-appname'),
             helmKeyContainerSuffix: core.getInput('helm-key-containersuffix'),
             helmKeyImage: core.getInput('helm-key-image'),
-            helmKeyNamespace: core.getInput('helm-key-namespace'),
             helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
-            helmKeyUrl: core.getInput('helm-key-url')
+            helmKeyUrl: core.getInput('helm-key-url'),
+            helmKeyNamespace: core.getInput('helm-key-namespace')
         };
         try {
             core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');

@@ -52,7 +52,7 @@ inputs:
   helm-namespace:
     required: false
     default: "vn-preview"
-    description: "Helm namespace where Helm releases are published"
+    description: "Helm namespace where Helm releases are published. Also used as k8s namespace!"
   helm-repo-url:
     required: false
     description: "Helm chart repo. If supplied, Helm charts are published here"
@@ -75,14 +75,14 @@ inputs:
     default: "1.0"
     description: "Major tag when tagging helm chart previews, example: 1.0"
 
-  helm-key-namespace:
-    required: true
-    default: "namespace"
-    description: "The key to in your helm chart to set when installing preview"
   helm-key-appname:
     required: true
     default: "appname"
     description: "The key to set in your helm chart to set when installing preview"
+  helm-key-namespace:
+    required: true
+    default: "namespace"
+    description: "k8s namespace key to override"
   helm-key-image:
     required: true
     default: "image"

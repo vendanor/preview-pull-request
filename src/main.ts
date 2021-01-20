@@ -37,9 +37,9 @@ async function run(): Promise<void> {
     helmKeyAppName: core.getInput('helm-key-appname'),
     helmKeyContainerSuffix: core.getInput('helm-key-containersuffix'),
     helmKeyImage: core.getInput('helm-key-image'),
-    helmKeyNamespace: core.getInput('helm-key-namespace'),
     helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
-    helmKeyUrl: core.getInput('helm-key-url')
+    helmKeyUrl: core.getInput('helm-key-url'),
+    helmKeyNamespace: core.getInput('helm-key-namespace')
   };
 
 
