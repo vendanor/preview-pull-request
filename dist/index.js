@@ -756,21 +756,20 @@ function postOrUpdateGithubComment(type, options, completePreviewUrl) {
         const sha7 = yield github_util_1.getLatestCommitShortSha(options.githubToken);
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
         core.info('Posting message to github PR...');
-        const img = 'http://files.vendanor.com/images/preview-78fe47dj.png';
+        const img = 'http://files.vendanor.com/images/vn-preview-495kfd53sl4.png';
         const messages = {
             fail: `
-## 🚨🚨 Preview :: Last job failed! 🚨🚨
 ![vn](${img} "vn")
+🚨🚨 Preview :: Last job failed! 🚨🚨
 Your preview (${sha7}) is (not yet) available.
   `,
             success: `
-## 🔥🔥 Preview :: Great success! 🔥🔥
 ![vn](${img} "vn")
 Your preview (${sha7}) is available here:
 <https://${completePreviewUrl}>
   `,
             removed: `
-## 🗑️🗑️ Preview :: Removed 🗑️🗑️
+![vn](${img} "vn")
 All previews are uninstalled from Kubernetes.  
 Re-open PR if you want to regenerate a new preview.
   `
