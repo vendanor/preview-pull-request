@@ -359,7 +359,7 @@ function deployPreview(options) {
         const helmReleaseName = `preview-${options.appName}-${pullRequestId}-${hash}`;
         const overrides = [
             `${options.helmKeyImage}=${dockerImageVersion}`,
-            `${options.helmKeyNamespace} ${options.helmNamespace}`,
+            `${options.helmKeyNamespace}=${options.helmNamespace}`,
             `${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
             `${options.helmKeyUrl}=${completePreviewUrl}`,
             `${options.helmKeyAppName}=${previewUrlIdentifier}`,

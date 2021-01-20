@@ -14,7 +14,6 @@ const setOutputFromResult = (result: CommandResult) => {
 async function run(): Promise<void> {
   const options: Options = {
     cmd: core.getInput('command', { required: true }),
-    azureToken: core.getInput('azure-token', { required: true }),
     appName: core.getInput('app-name'),
     helmNamespace: core.getInput('helm-namespace'),
     githubToken: core.getInput('token'),

@@ -25,10 +25,6 @@ import { loginAzure } from './az-login';
 export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Starting deploy preview...');
 
-  // Login to azure and github container registry
-  // TODO: remove?
-  await loginAzure(options.azureToken);
-
   await loginContainerRegistry(
     options.dockerUsername,
     options.dockerPassword,

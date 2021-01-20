@@ -11,7 +11,6 @@ export interface Options {
   helmRepoPassword: string;
   baseUrl: string;
   dockerPullSecret: string;
-  azureToken: string;
   helmOrganization: string;
   helmRepoUrl?: string;
   helmChartFilePath: string;

@@ -16,10 +16,6 @@ inputs:
     description: "Your Github token"
     default: $
     required: true
-  azure-token:
-    required: true
-    description: "Your Azure token"
-
   docker-file:
     required: false
     default: "Dockerfile"
