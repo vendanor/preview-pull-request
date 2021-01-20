@@ -132,7 +132,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
 
   const overrides = [
     `${options.helmKeyImage}=${dockerImageVersion}`,
-    `${options.helmKeyNamespace} ${options.helmNamespace}`,
+    `${options.helmKeyNamespace}=${options.helmNamespace}`,
     `${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
     `${options.helmKeyUrl}=${completePreviewUrl}`,
     `${options.helmKeyAppName}=${previewUrlIdentifier}`,
