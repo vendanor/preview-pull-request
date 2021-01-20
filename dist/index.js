@@ -357,12 +357,12 @@ function deployPreview(options) {
         const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
         const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
         const helmReleaseName = `preview-${options.appName}-${pullRequestId}-${hash}`;
-        const finalResult = yield exec.exec('helm', [
+        // `--namespace "${options.helmNamespace}"`,
+        const finalResult = yield run_cmd_1.runCmd('helm', [
             'upgrade',
             helmReleaseName,
             chartFilenameToPush,
             '--install',
-            `--namespace "${options.helmNamespace}"`,
             `--set ${options.helmKeyImage}=${dockerImageVersion}`,
             `--set ${options.helmKeyNamespace} ${options.helmNamespace}`,
             `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
@@ -370,11 +370,14 @@ function deployPreview(options) {
             `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
             `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
         ]);
+        if (finalResult.stdErr) {
+            core.error(finalResult.stdErr);
+        }
         const result = {
             previewUrl: completePreviewUrl,
             helmReleaseName,
             dockerImageVersion,
-            success: finalResult === 0 // hmm...?
+            success: finalResult.resultCode === 0 // hmm...?
         };
         core.info('All done! Printing returned result..');
         core.info(JSON.stringify(result, null, 2));

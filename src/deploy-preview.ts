@@ -131,7 +131,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const helmReleaseName = `preview-${options.appName}-${pullRequestId}-${hash}`;
 
     // `--namespace "${options.helmNamespace}"`,
-  
+
   const finalResult = await runCmd('helm', [
     'upgrade',
     helmReleaseName,
