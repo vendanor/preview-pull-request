@@ -9,8 +9,10 @@ import {
 } from './github-util';
 import { Options } from './common';
 
+type MessageType = 'success' | 'fail' | 'removed';
+
 export async function postOrUpdateGithubComment(
-  success: boolean,
+  type: MessageType,
   options: Options,
   completePreviewUrl?: string
 ) {
@@ -20,20 +22,26 @@ export async function postOrUpdateGithubComment(
   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
 
   core.info('Posting message to github PR...');
-
-  const msgOk = `
-![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
+  const img = 'http://files.vendanor.com/images/preview-78fe47dj.png';
+  const messages: { [key in MessageType]: string } = {
+    fail: `
+## 🚨🚨 Preview :: Last job failed! 🚨🚨
+![vn](${img} "vn")
+Your preview (${sha7}) is (not yet) available.
+  `,
+    success: `
 ## 🔥🔥 Preview :: Great success! 🔥🔥
+![vn](${img} "vn")
 Your preview (${sha7}) is available here:
 <https://${completePreviewUrl}>
-  `;
-  const msgFail = `
-![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
-## 🚨🚨 Preview :: Last job failed! 🚨🚨
-Your preview (${sha7}) is (not yet) available.
-  `;
-
-  const body = success ? msgOk : msgFail;
+  `,
+    removed: `
+## 🗑️🗑️ Preview :: Removed 🗑️🗑️
+All previews are uninstalled from Kubernetes.  
+Re-open PR if you want to regenerate a new preview.
+  `
+  };
+  const body = messages[type];
 
   const previousComment = await findPreviousComment(
     options.githubToken,

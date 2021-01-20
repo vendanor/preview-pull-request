@@ -43,21 +43,21 @@ async function run(): Promise<void> {
 
 
   try {
-    core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');
+    core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
     core.info(dilbert);
 
     if (options.cmd === 'deploy') {
         const result = await deployPreview(options);
         setOutputFromResult(result);
-        await postOrUpdateGithubComment(true, options, result.previewUrl);
+        await postOrUpdateGithubComment('success', options, result.previewUrl);
     } else {
       const result = await clearPreviewsForCurrentPullRequest(options);
       setOutputFromResult(result);
-      // TODO: post update message?
+      await postOrUpdateGithubComment('removed', options);
     }
     core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
   } catch (error) {
-    await postOrUpdateGithubComment(false, options);
+    await postOrUpdateGithubComment('fail', options);
     core.error(error);
     core.setFailed(error.message);
   }

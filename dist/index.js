@@ -614,22 +614,22 @@ function run() {
             helmKeyNamespace: core.getInput('helm-key-namespace')
         };
         try {
-            core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');
+            core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
             core.info(dilbert_1.dilbert);
             if (options.cmd === 'deploy') {
                 const result = yield deploy_preview_1.deployPreview(options);
                 setOutputFromResult(result);
-                yield sticky_comment_1.postOrUpdateGithubComment(true, options, result.previewUrl);
+                yield sticky_comment_1.postOrUpdateGithubComment('success', options, result.previewUrl);
             }
             else {
                 const result = yield clear_preview_1.clearPreviewsForCurrentPullRequest(options);
                 setOutputFromResult(result);
-                // TODO: post update message?
+                yield sticky_comment_1.postOrUpdateGithubComment('removed', options);
             }
             core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
         }
         catch (error) {
-            yield sticky_comment_1.postOrUpdateGithubComment(false, options);
+            yield sticky_comment_1.postOrUpdateGithubComment('fail', options);
             core.error(error);
             core.setFailed(error.message);
         }
@@ -749,25 +749,33 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.postOrUpdateGithubComment = void 0;
 const core = __importStar(__webpack_require__(2186));
 const github_util_1 = __webpack_require__(2762);
-function postOrUpdateGithubComment(success, options, completePreviewUrl) {
+function postOrUpdateGithubComment(type, options, completePreviewUrl) {
     return __awaiter(this, void 0, void 0, function* () {
         const header = `VnKubePreview`;
         const context = yield github_util_1.getCurrentContext();
         const sha7 = yield github_util_1.getLatestCommitShortSha(options.githubToken);
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
         core.info('Posting message to github PR...');
-        const msgOk = `
-![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
+        const img = 'http://files.vendanor.com/images/preview-78fe47dj.png';
+        const messages = {
+            fail: `
+## 🚨🚨 Preview :: Last job failed! 🚨🚨
+![vn](${img} "vn")
+Your preview (${sha7}) is (not yet) available.
+  `,
+            success: `
 ## 🔥🔥 Preview :: Great success! 🔥🔥
+![vn](${img} "vn")
 Your preview (${sha7}) is available here:
 <https://${completePreviewUrl}>
-  `;
-        const msgFail = `
-![vn](https://app.vendanor.com/img/favicon/android-chrome-192x192.png "vn")
-## 🚨🚨 Preview :: Last job failed! 🚨🚨
-Your preview (${sha7}) is (not yet) available.
-  `;
-        const body = success ? msgOk : msgFail;
+  `,
+            removed: `
+## 🗑️🗑️ Preview :: Removed 🗑️🗑️
+All previews are uninstalled from Kubernetes.  
+Re-open PR if you want to regenerate a new preview.
+  `
+        };
+        const body = messages[type];
         const previousComment = yield github_util_1.findPreviousComment(options.githubToken, context.repo, pullRequestId, header);
         if (previousComment) {
             yield github_util_1.updateComment(options.githubToken, context.repo, previousComment.id, body, header);
