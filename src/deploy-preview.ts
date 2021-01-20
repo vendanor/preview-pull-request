@@ -130,12 +130,13 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
   const helmReleaseName = `preview-${options.appName}-${pullRequestId}-${hash}`;
 
-  const finalResult = await exec.exec('helm', [
+    // `--namespace "${options.helmNamespace}"`,
+  
+  const finalResult = await runCmd('helm', [
     'upgrade',
     helmReleaseName,
     chartFilenameToPush,
     '--install',
-    `--namespace "${options.helmNamespace}"`,
     `--set ${options.helmKeyImage}=${dockerImageVersion}`,
     `--set ${options.helmKeyNamespace} ${options.helmNamespace}`,
     `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
@@ -144,11 +145,15 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
   ]);
 
+  if (finalResult.stdErr) {
+    core.error(finalResult.stdErr);
+  }
+
   const result = {
     previewUrl: completePreviewUrl,
     helmReleaseName,
     dockerImageVersion,
-    success: finalResult === 0 // hmm...?
+    success: finalResult.resultCode === 0 // hmm...?
   };
 
   core.info('All done! Printing returned result..');
