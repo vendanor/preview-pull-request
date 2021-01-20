@@ -28,7 +28,9 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   // We can set env.HELM_KUBECONTEXT I think..
 
   core.info('get helm version');
-  await exec.exec('helm version', ['--kube-context', options.kubeConfig]);
+
+
+  await exec.exec('helm version');
   core.info('after get helm version');
 
   // Login to azure and github container registry

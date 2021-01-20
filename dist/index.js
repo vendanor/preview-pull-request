@@ -270,7 +270,7 @@ function deployPreview(options) {
         core.info('Starting deploy preview...');
         // We can set env.HELM_KUBECONTEXT I think..
         core.info('get helm version');
-        yield exec.exec('helm version', ['--kube-context', options.kubeConfig]);
+        yield exec.exec('helm version');
         core.info('after get helm version');
         // Login to azure and github container registry
         yield az_login_1.loginAzure(options.azureToken);
@@ -754,8 +754,7 @@ function run() {
             helmKeyImage: core.getInput('helm-key-image'),
             helmKeyNamespace: core.getInput('helm-key-namespace'),
             helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
-            helmKeyUrl: core.getInput('helm-key-url'),
-            kubeConfig: core.getInput('kube-config')
+            helmKeyUrl: core.getInput('helm-key-url')
         };
         try {
             core.info('💊💊 Running Vendanor Kube Preview Action 💊💊');
