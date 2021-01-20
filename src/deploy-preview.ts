@@ -4,7 +4,7 @@ import { CommandResult, Options } from './common';
 import {
   getCurrentContext,
   getCurrentPullRequestId,
-  getLatestCommitShortSha,
+  getLatestCommitShortSha
 } from './github-util';
 import { generateHash } from './generate-hash';
 import { runCmd } from './run-cmd';
@@ -130,19 +130,24 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
   const helmReleaseName = `preview-${options.appName}-${pullRequestId}-${hash}`;
 
-    // `--namespace "${options.helmNamespace}"`,
+  const overrides = [
+    `${options.helmKeyImage}=${dockerImageVersion}`,
+    `${options.helmKeyNamespace} ${options.helmNamespace}`,
+    `${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
+    `${options.helmKeyUrl}=${completePreviewUrl}`,
+    `${options.helmKeyAppName}=${previewUrlIdentifier}`,
+    `${options.helmKeyContainerSuffix}=${githubRunNumber}`
+  ].join(',');
 
   const finalResult = await runCmd('helm', [
     'upgrade',
     helmReleaseName,
     chartFilenameToPush,
     '--install',
-    `--set ${options.helmKeyImage}=${dockerImageVersion}`,
-    `--set ${options.helmKeyNamespace} ${options.helmNamespace}`,
-    `--set ${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
-    `--set ${options.helmKeyUrl}=${completePreviewUrl}`,
-    `--set ${options.helmKeyAppName}=${previewUrlIdentifier}`,
-    `--set ${options.helmKeyContainerSuffix}=${githubRunNumber}`
+    '--namespace',
+    options.helmNamespace,
+    '--set',
+    overrides
   ]);
 
   if (finalResult.stdErr) {
