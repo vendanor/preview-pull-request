@@ -14,9 +14,6 @@ This action will:
 
 ![illustration](illustration.png)
 
-Example comment in PR:
-
-
 ## Usage
 1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, `pullsecret` and `url` is defined
 with values that can be overridden. VnKubePreviewAction will generate values per Pull Request
@@ -110,3 +107,6 @@ If you specify `helm-repo-url` when deploying, charts are also published to give
 This makes it possible to also deploy a specific chart/version to production, as a release candidate etc.
 
 ## Future improvements
+- Update message in PR when starting build?
+- Better way to pass custom values?
+
