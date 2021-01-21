@@ -10,7 +10,7 @@ inputs:
   command:
     required: true
     default: "deploy"
-    description: "Command to run, can be deploy or remove"
+    description: "Command to run, can be deploy, remove or notify"
 
   token:
     description: "Your Github token"

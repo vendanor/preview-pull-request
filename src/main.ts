@@ -4,6 +4,8 @@ import { clearPreviewsForCurrentPullRequest } from './clear-preview';
 import { deployPreview } from './deploy-preview';
 import { dilbert } from './dilbert';
 import { postOrUpdateGithubComment } from './sticky-comment';
+import { generateHash } from './generate-hash';
+import { getCurrentPullRequestId } from './github-util';
 
 const setOutputFromResult = (result: CommandResult) => {
   core.setOutput('preview-url', result.previewUrl);
@@ -44,12 +46,19 @@ async function run(): Promise<void> {
   try {
     core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
     core.info(dilbert);
-
     if (options.cmd === 'deploy') {
-      await postOrUpdateGithubComment('brewing', options);
       const result = await deployPreview(options);
       setOutputFromResult(result);
       await postOrUpdateGithubComment('success', options, result.previewUrl);
+    } else if (options.cmd === 'notify') {
+      const pullRequestId = await getCurrentPullRequestId(options.githubToken);
+      const hash = generateHash(pullRequestId, options.hashSalt);
+      const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
+      const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
+      await postOrUpdateGithubComment('brewing', options, completePreviewUrl);
+      setOutputFromResult({
+        success: true
+      });
     } else {
       const result = await clearPreviewsForCurrentPullRequest(options);
       setOutputFromResult(result);

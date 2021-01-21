@@ -578,6 +578,8 @@ const clear_preview_1 = __webpack_require__(3353);
 const deploy_preview_1 = __webpack_require__(958);
 const dilbert_1 = __webpack_require__(4809);
 const sticky_comment_1 = __webpack_require__(1788);
+const generate_hash_1 = __webpack_require__(4457);
+const github_util_1 = __webpack_require__(2762);
 const setOutputFromResult = (result) => {
     core.setOutput('preview-url', result.previewUrl);
     core.setOutput('docker-image-version', result.dockerImageVersion);
@@ -617,10 +619,19 @@ function run() {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
             core.info(dilbert_1.dilbert);
             if (options.cmd === 'deploy') {
-                yield sticky_comment_1.postOrUpdateGithubComment('brewing', options);
                 const result = yield deploy_preview_1.deployPreview(options);
                 setOutputFromResult(result);
                 yield sticky_comment_1.postOrUpdateGithubComment('success', options, result.previewUrl);
+            }
+            else if (options.cmd === 'notify') {
+                const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
+                const hash = generate_hash_1.generateHash(pullRequestId, options.hashSalt);
+                const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
+                const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
+                yield sticky_comment_1.postOrUpdateGithubComment('brewing', options, completePreviewUrl);
+                setOutputFromResult({
+                    success: true
+                });
             }
             else {
                 const result = yield clear_preview_1.clearPreviewsForCurrentPullRequest(options);
