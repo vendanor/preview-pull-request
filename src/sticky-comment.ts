@@ -9,7 +9,7 @@ import {
 } from './github-util';
 import { Options } from './common';
 
-type MessageType = 'success' | 'fail' | 'removed';
+type MessageType = 'success' | 'fail' | 'removed' | 'brewing';
 
 export async function postOrUpdateGithubComment(
   type: MessageType,
@@ -38,7 +38,14 @@ Your preview (${sha7}) is available here:
 ![vn](${img} "vn")
 All previews are uninstalled from Kubernetes.  
 Re-open PR if you want to regenerate a new preview.
-  `
+  `,
+    brewing: `
+![vn](${img} "vn")
+Your preview is available here:
+<https://${completePreviewUrl}>
+
+👷 A new version (${sha7}) is currently building..
+    `
   };
   const body = messages[type];
 

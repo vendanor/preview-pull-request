@@ -617,6 +617,7 @@ function run() {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
             core.info(dilbert_1.dilbert);
             if (options.cmd === 'deploy') {
+                yield sticky_comment_1.postOrUpdateGithubComment('brewing', options);
                 const result = yield deploy_preview_1.deployPreview(options);
                 setOutputFromResult(result);
                 yield sticky_comment_1.postOrUpdateGithubComment('success', options, result.previewUrl);
@@ -772,7 +773,14 @@ Your preview (${sha7}) is available here:
 ![vn](${img} "vn")
 All previews are uninstalled from Kubernetes.  
 Re-open PR if you want to regenerate a new preview.
-  `
+  `,
+            brewing: `
+![vn](${img} "vn")
+Your preview is available here:
+<https://${completePreviewUrl}>
+
+👷 A new version (${sha7}) is currently building..
+    `
         };
         const body = messages[type];
         const previousComment = yield github_util_1.findPreviousComment(options.githubToken, context.repo, pullRequestId, header);

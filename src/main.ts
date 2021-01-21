@@ -41,15 +41,15 @@ async function run(): Promise<void> {
     helmKeyNamespace: core.getInput('helm-key-namespace')
   };
 
-
   try {
     core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
     core.info(dilbert);
 
     if (options.cmd === 'deploy') {
-        const result = await deployPreview(options);
-        setOutputFromResult(result);
-        await postOrUpdateGithubComment('success', options, result.previewUrl);
+      await postOrUpdateGithubComment('brewing', options);
+      const result = await deployPreview(options);
+      setOutputFromResult(result);
+      await postOrUpdateGithubComment('success', options, result.previewUrl);
     } else {
       const result = await clearPreviewsForCurrentPullRequest(options);
       setOutputFromResult(result);
