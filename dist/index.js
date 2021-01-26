@@ -295,7 +295,9 @@ function deployPreview(options) {
             `${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
             `${options.helmKeyUrl}=${completePreviewUrl}`,
             `${options.helmKeyAppName}=${previewUrlIdentifier}`,
-            `${options.helmKeyContainerSuffix}=${githubRunNumber}`
+            `${options.helmKeyContainerSuffix}=${githubRunNumber}`,
+            `${options.helmKeyClusterIssuer}=${options.clusterIssuer}`,
+            `${options.helmKeyTlsSecretName}=${options.TlsSecretName}`
         ].join(',');
         const finalResult = yield run_cmd_1.runCmd('helm', [
             'upgrade',
@@ -682,7 +684,11 @@ function run() {
             helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
             helmKeyUrl: core.getInput('helm-key-url'),
             helmKeyNamespace: core.getInput('helm-key-namespace'),
-            helmRemovePreviewCharts: core.getInput('helm-remove-preview-charts')
+            helmRemovePreviewCharts: core.getInput('helm-remove-preview-charts'),
+            helmKeyTlsSecretName: core.getInput('helm-key-tls-secret-name'),
+            helmKeyClusterIssuer: core.getInput('helm-key-cluster-issuer'),
+            clusterIssuer: core.getInput('cluster-issuer'),
+            TlsSecretName: core.getInput('tls-secret-name')
         };
         try {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');

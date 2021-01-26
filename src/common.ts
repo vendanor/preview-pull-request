@@ -1,6 +1,8 @@
 export type Command = 'deploy' | 'remove';
 
 export interface Options {
+  TlsSecretName: string;
+  clusterIssuer: string;
   helmKeyNamespace: string;
   helmRemovePreviewCharts: string;
   helmKeyAppName: string;
@@ -8,6 +10,8 @@ export interface Options {
   helmKeyPullSecret: string;
   helmKeyUrl: string;
   helmKeyContainerSuffix: string;
+  helmKeyClusterIssuer: string;
+  helmKeyTlsSecretName: string;
   helmRepoUsername: string;
   helmRepoPassword: string;
   baseUrl: string;

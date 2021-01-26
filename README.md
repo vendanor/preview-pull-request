@@ -19,11 +19,14 @@ Example message in PR:
 
 
 ## Usage
-1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, `pullsecret` and `url` is defined
+1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, 
+   `pullsecret`, `url`, `cluster-issuer`, `tls-secret-name` is defined
 with values that can be overridden. VnKubePreviewAction will generate values per Pull Request
 and set these when packaging the helm chart.
 2. Set AKS context using `azure/k8s-set-context` in your ci/cd setup
-3. Use VnKubePreviewAction to deploy and remove preview when opening or closing pull request.
+3. Use VnKubePreviewAction to deploy and remove previews when opening or closing pull request.
+
+### 1. Define Helm chart
 
 Example `values.yaml` in Helm chart:
 ```yaml
@@ -34,9 +37,67 @@ image: ghcr.io/company/myapp:latest
 url: myapp.company.com
 pullsecret: replace
 containersuffix: production
+clusterIssuer: my-cluster-issuer
+tlsSecretName: myapp-cert
 ```
 
-Example CI/CD setup:
+Example `ingress.yml` in Helm chart:  
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Values.appname }}
+  namespace: {{ .Values.namespace }}
+  annotations:
+    cert-manager.io/cluster-issuer: {{ .Values.clusterIssuer }}
+spec:
+  tls:
+    - hosts:
+        - {{ .Values.url }}
+      secretName: {{ .Values.tlsSecretName }}
+  rules:
+    - host: {{ .Values.url }}
+      http:
+        paths:
+          - pathType: Prefix
+            path: '/'
+            backend:
+              service:
+                name: {{ .Values.appname }}
+                port:
+                  number: 80
+```
+
+Example `deployment.yml` in Helm chart:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appname }}
+  namespace: {{ .Values.namespace }}
+  labels:
+    app: {{ .Values.appname }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ .Values.appname }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.appname }}
+    spec:
+      containers:
+        - name: {{ .Values.appname }}{{ .Values.containersuffix }}
+          image: {{ .Values.image }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 80
+            - containerPort: 443
+```
+
+### 3. Example deployment:
+
 ```yaml
 name: CI/CD Pull Request
 
@@ -69,7 +130,7 @@ jobs:
 
       - name: Deploy app to VnKubePreview
         id: deploy_preview_step
-        uses: vendanor/VnKubePreviewAction@v1.1 # check for latest version
+        uses: vendanor/VnKubePreviewAction@latest
         with:
           command: deploy
           app-name: myapp
@@ -82,6 +143,8 @@ jobs:
           docker-image-name: my-app
           docker-pullsecret: ${{ secrets.PULLSECRET }}
           helm-chart: charts/myapp
+          cluster-issuer: my-preview-cluster-issuer # name of clusterissuer. If you want to use wildcard certificate, issuer needs to be able to resolve DNS challenges
+          tls-secret-name: preview-wildcard-cert # shared wildcard cert name, or dynamic from appname
 
   remove_preview:
     name: Remove app previews from VnKubePreview
@@ -97,11 +160,54 @@ jobs:
           kubeconfig: ${{ env.KUBECONFIG }}
 
       - name: Remove previews related to PR
-        uses: vendanor/VnKubePreviewAction@v1.1 # check for latest version
+        uses: vendanor/VnKubePreviewAction@latest
         with:
           command: remove
           app-name: myapp
           token: ${{ secrets.GITHUB_TOKEN }}
+```
+
+## Certificates
+This action only supports cert-manager ClusterIssuer for now. You can setup VnKubePreview using
+unique certificates per preview, or a shared wildcard certificate. The latter is preferred
+if you want to avoid letsencrypt's rate limits.
+
+### Unique certificates
+When deploying previews, set `cluster-issuer` to and issuer with support for resolving HTTP challenges.
+Set `tls-secret-name` to a dynamic value to get a unique certificate for each PR.
+
+### Wildcard certificates
+Add a ClusterIssuer which can resolve DNS01 challenges. cert-manager supports a few well known DNS services.
+ [Here is an example](https://cert-manager.io/docs/configuration/acme/dns01/azuredns/) 
+using letsencrypt, Azure DNS and DNS01 resolver (to enable issuing wildcard certs):
+
+```
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: preview-issuer
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: mail@company.com
+    privateKeySecretRef:
+      name: letsencrypt-issuer-account-key
+    solvers:
+      - dns01:
+          azureDNS:
+            clientID: xxx
+            clientSecretSecretRef:
+              name: azuredns-config
+              key: client-secret
+            subscriptionID: xxx
+            tenantID: xxx
+            resourceGroupName: staging
+            hostedZoneName: preview.company.com
+            environment: AzurePublicCloud
+      - http01:
+          ingress:
+            class: nginx
+
 ```
 
 ## More info

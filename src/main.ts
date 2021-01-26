@@ -48,7 +48,11 @@ async function run(): Promise<void> {
     helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
     helmKeyUrl: core.getInput('helm-key-url'),
     helmKeyNamespace: core.getInput('helm-key-namespace'),
-    helmRemovePreviewCharts: core.getInput('helm-remove-preview-charts')
+    helmRemovePreviewCharts: core.getInput('helm-remove-preview-charts'),
+    helmKeyTlsSecretName: core.getInput('helm-key-tls-secret-name'),
+    helmKeyClusterIssuer: core.getInput('helm-key-cluster-issuer'),
+    clusterIssuer: core.getInput('cluster-issuer'),
+    TlsSecretName: core.getInput('tls-secret-name')
   };
 
   try {

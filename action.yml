@@ -99,7 +99,14 @@ inputs:
     required: true
     default: "containersuffix"
     description: "The key to set in your helm chart to set when installing preview"
-
+  helm-key-cluster-issuer:
+    required: true
+    default: "clusterIssuer"
+    description: "The key to set in your helm chart to set when installing preview"
+  helm-key-tls-secret-name:
+    required: true
+    default: "tlsSecretName"
+    description: "The key to set in your helm chart to set when installing preview"
 
   # idea, use this for 1) docker image url 2) helm chart url 3) preview url?  => rename to preview-name?
   app-name:
@@ -113,6 +120,14 @@ inputs:
     required: false
     default: "pr.st.vendanor.com"
     description: "Base preview url, example preview.domain.com"
+  cluster-issuer:
+    required: true
+    default: vn-letsencrypt-issuer
+    description: "Name of cluster issuer to use"
+  tls-secret-name:
+    required: true
+    default: vn-preview-cert
+    description: "Certificate secret name. Use a shared name for wildcard certs"
 
 outputs:
   previewUrl:

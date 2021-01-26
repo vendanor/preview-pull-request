@@ -133,7 +133,9 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     `${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
     `${options.helmKeyUrl}=${completePreviewUrl}`,
     `${options.helmKeyAppName}=${previewUrlIdentifier}`,
-    `${options.helmKeyContainerSuffix}=${githubRunNumber}`
+    `${options.helmKeyContainerSuffix}=${githubRunNumber}`,
+    `${options.helmKeyClusterIssuer}=${options.clusterIssuer}`,
+    `${options.helmKeyTlsSecretName}=${options.TlsSecretName}`
   ].join(',');
 
   const finalResult = await runCmd('helm', [
