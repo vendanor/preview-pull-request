@@ -21,7 +21,7 @@ export async function postOrUpdateGithubComment(
   const sha7 = await getLatestCommitShortSha(options.githubToken);
   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
 
-  core.info('Posting message to github PR...');
+  core.info('Posting message to github PR: ' + type);
   const img = 'http://files.vendanor.com/images/vn-preview-495kfd53sl4.png';
   const messages: { [key in MessageType]: string } = {
     fail: `

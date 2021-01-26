@@ -2,14 +2,13 @@ import {
   ChartListResult,
   CommandResult,
   HelmListResult,
-  HelmReleaseInfo,
   Options
 } from './common';
 import * as core from '@actions/core';
 import { runCmd } from './run-cmd';
 import { getCurrentPullRequestId } from './github-util';
 import { PREVIEW_TAG_PREFIX } from './deploy-preview';
-import { encode } from './crypto-util';
+import axios from 'axios';
 
 export const clearPreviewsForCurrentPullRequest = async (
   options: Options
@@ -68,37 +67,31 @@ export const clearPreviewsForCurrentPullRequest = async (
     core.info('Removing charts..');
 
     const url = `${helmRepoUrl}/api/charts/${appName}`;
-    const allCharts = await fetch(url, {
-      method: 'GET'
-    });
+    const allCharts = await axios.get<ChartListResult>(url);
     core.info(
       `Fetch list of charts: ${allCharts.status} - ${allCharts.statusText}`
     );
-    const allChartsObj = (await allCharts.json()) as ChartListResult;
 
     core.info('All charts');
-    core.info(JSON.stringify(allChartsObj, null, 2));
+    core.info(JSON.stringify(allCharts.data, null, 2));
 
-    const filteredCharts = allChartsObj.filter(
+    const filteredCharts = allCharts.data.filter(
       c => c.name === appName && regexCurrentVersion.test(c.version)
     );
 
     core.info('filtered charts to delete');
     core.info(JSON.stringify(filteredCharts, null, 2));
-    const headers = new Headers();
-    headers.append(
-      'Authorization',
-      `Basic ${encode(helmRepoUsername + ':' + helmRepoPassword)}`
-    );
 
     for (let i = 0; i < filteredCharts.length; i++) {
       const { name, version } = filteredCharts[i];
       core.info(`Deleting chart ${version}`);
-      const deleteResult = await fetch(
+      const deleteResult = await axios.delete(
         `${helmRepoUrl}/api/charts/${name}/${version}`,
         {
-          method: 'DELETE',
-          headers: headers
+          auth: {
+            username: options.helmRepoUsername,
+            password: options.helmRepoPassword
+          }
         }
       );
       core.info(
