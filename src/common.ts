@@ -2,6 +2,7 @@ export type Command = 'deploy' | 'remove';
 
 export interface Options {
   helmKeyNamespace: string;
+  helmRemovePreviewCharts: string;
   helmKeyAppName: string;
   helmKeyImage: string;
   helmKeyPullSecret: string;
@@ -30,10 +31,10 @@ export interface Options {
 }
 
 export interface CommandResult {
+  success: boolean;
   previewUrl?: string;
   helmReleaseName?: string;
   dockerImageVersion?: string;
-  success: boolean;
 }
 
 export interface HelmReleaseInfo {
@@ -47,6 +48,19 @@ export interface HelmReleaseInfo {
 }
 
 export type HelmListResult = Array<HelmReleaseInfo>;
+
+export interface ChartInfo {
+  name: string;
+  version: string;
+  description: string;
+  apiVersion: string;
+  appVersion: string;
+  type: string;
+  created: string;
+  digest: string;
+}
+
+export type ChartListResult = Array<ChartInfo>;
 
 export interface Repo {
   owner: string;

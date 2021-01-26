@@ -40,17 +40,36 @@ exports.clearPreviewsForCurrentPullRequest = void 0;
 const core = __importStar(__webpack_require__(2186));
 const run_cmd_1 = __webpack_require__(7537);
 const github_util_1 = __webpack_require__(2762);
+const deploy_preview_1 = __webpack_require__(958);
+const crypto_util_1 = __webpack_require__(9255);
 const clearPreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 0, void 0, function* () {
-    const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
+    const { appName, githubToken, helmNamespace, helmRemovePreviewCharts, helmRepoPassword, helmRepoUrl, helmRepoUsername } = options;
+    const pullRequestId = yield github_util_1.getCurrentPullRequestId(githubToken);
+    const shouldRemoveCharts = helmRemovePreviewCharts.toLowerCase() === 'true' &&
+        helmRepoUrl !== undefined;
+    const regexCurrentVersion = new RegExp(`\\b${deploy_preview_1.PREVIEW_TAG_PREFIX}.${pullRequestId}.\\b`);
     core.info(`Removing previews for pull request ${pullRequestId}...`);
-    const cmdResult = yield run_cmd_1.runCmd('helm', ['list', '--namespace', options.helmNamespace, '--filter', `preview-${options.appName}-${pullRequestId}`, '--output', 'json']);
+    const cmdResult = yield run_cmd_1.runCmd('helm', [
+        'list',
+        '--namespace',
+        helmNamespace,
+        '--filter',
+        `preview-${appName}-${pullRequestId}`,
+        '--output',
+        'json'
+    ]);
     core.info('Helm list result: ' + cmdResult.resultCode);
     core.info(cmdResult.output);
     const json = JSON.parse(cmdResult.output);
     for (let index = 0; index < json.length; index++) {
         const release = json[index];
-        core.info(`Removing release ${release.name} (${release.app_version})`);
-        const removeResult = yield run_cmd_1.runCmd('helm', ['uninstall', release.name, '--namespace', options.helmNamespace]);
+        core.info(`Removing release ${release.name} (${release.app_version}) from Kubernetes`);
+        const removeResult = yield run_cmd_1.runCmd('helm', [
+            'uninstall',
+            release.name,
+            '--namespace',
+            helmNamespace
+        ]);
         if (removeResult.resultCode === 0) {
             core.info(removeResult.output);
         }
@@ -58,12 +77,72 @@ const clearPreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 0
             core.error(removeResult.output);
         }
     }
-    core.info(`All previews for app ${options.appName} deleted successfully!`);
+    if (shouldRemoveCharts) {
+        core.info('Removing charts..');
+        const url = `${helmRepoUrl}/api/charts/${appName}`;
+        const allCharts = yield fetch(url, {
+            method: 'GET'
+        });
+        core.info(`Fetch list of charts: ${allCharts.status} - ${allCharts.statusText}`);
+        const allChartsObj = (yield allCharts.json());
+        core.info('All charts');
+        core.info(JSON.stringify(allChartsObj, null, 2));
+        const filteredCharts = allChartsObj.filter(c => c.name === appName && regexCurrentVersion.test(c.version));
+        core.info('filtered charts to delete');
+        core.info(JSON.stringify(filteredCharts, null, 2));
+        const headers = new Headers();
+        headers.append('Authorization', `Basic ${crypto_util_1.encode(helmRepoUsername + ':' + helmRepoPassword)}`);
+        for (let i = 0; i < filteredCharts.length; i++) {
+            const { name, version } = filteredCharts[i];
+            core.info(`Deleting chart ${version}`);
+            const deleteResult = yield fetch(`${helmRepoUrl}/api/charts/${name}/${version}`, {
+                method: 'DELETE',
+                headers: headers
+            });
+            core.info(`Delete result: ${deleteResult.status} ${deleteResult.statusText}`);
+        }
+        core.info('Done deleting helm charts');
+    }
+    else {
+        core.info('Skip removing charts..');
+    }
+    core.info(`All previews for app ${appName} deleted successfully!`);
     return {
         success: true
     };
 });
 exports.clearPreviewsForCurrentPullRequest = clearPreviewsForCurrentPullRequest;
+
+
+/***/ }),
+
+/***/ 9255:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.decode = exports.encode = exports.generateHash = void 0;
+const sha256_1 = __importDefault(__webpack_require__(3941));
+const enc_base64_1 = __importDefault(__webpack_require__(8025));
+const enc_utf8_1 = __importDefault(__webpack_require__(3098));
+function generateHash(prId, salt) {
+    return sha256_1.default(`${prId}${salt}`).toString().substr(0, 7);
+}
+exports.generateHash = generateHash;
+function encode(myString) {
+    const encodedWord = enc_utf8_1.default.parse(myString);
+    return enc_base64_1.default.stringify(encodedWord);
+}
+exports.encode = encode;
+function decode(encoded) {
+    const encodedWord = enc_base64_1.default.parse(encoded);
+    return enc_utf8_1.default.stringify(encodedWord);
+}
+exports.decode = decode;
 
 
 /***/ }),
@@ -102,13 +181,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.deployPreview = void 0;
+exports.deployPreview = exports.PREVIEW_TAG_PREFIX = void 0;
 const core = __importStar(__webpack_require__(2186));
 const exec = __importStar(__webpack_require__(1514));
 const github_util_1 = __webpack_require__(2762);
-const generate_hash_1 = __webpack_require__(4457);
 const run_cmd_1 = __webpack_require__(7537);
 const docker_util_1 = __webpack_require__(7487);
+const crypto_util_1 = __webpack_require__(9255);
+exports.PREVIEW_TAG_PREFIX = '-preview';
 /**
  * This will:
  * - build docker image + tag with correct semver meta preview tags
@@ -129,7 +209,7 @@ function deployPreview(options) {
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
         const context = yield github_util_1.getCurrentContext();
         const githubRunNumber = context.runNumber;
-        const tagPostfix = `-preview.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
+        const tagPostfix = `${exports.PREVIEW_TAG_PREFIX}.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
         // == DOCKER ==
         // build docker image
         const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
@@ -205,7 +285,7 @@ function deployPreview(options) {
         }
         // === Install or upgrade Helm preview release! ===
         core.info('Ready to deploy to AKS...');
-        const hash = generate_hash_1.generateHash(pullRequestId, options.hashSalt);
+        const hash = crypto_util_1.generateHash(pullRequestId, options.hashSalt);
         const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
         const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
         const helmReleaseName = `preview-${options.appName}-${pullRequestId}-${hash}`;
@@ -341,25 +421,6 @@ function loginContainerRegistry(username, password, registry) {
     });
 }
 exports.loginContainerRegistry = loginContainerRegistry;
-
-
-/***/ }),
-
-/***/ 4457:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.generateHash = void 0;
-const sha256_1 = __importDefault(__webpack_require__(3941));
-function generateHash(prId, salt) {
-    return sha256_1.default(`${prId}${salt}`).toString().substr(0, 7);
-}
-exports.generateHash = generateHash;
 
 
 /***/ }),
@@ -578,12 +639,19 @@ const clear_preview_1 = __webpack_require__(3353);
 const deploy_preview_1 = __webpack_require__(958);
 const dilbert_1 = __webpack_require__(4809);
 const sticky_comment_1 = __webpack_require__(1788);
-const generate_hash_1 = __webpack_require__(4457);
 const github_util_1 = __webpack_require__(2762);
+const crypto_util_1 = __webpack_require__(9255);
 const setOutputFromResult = (result) => {
-    core.setOutput('preview-url', result.previewUrl);
-    core.setOutput('docker-image-version', result.dockerImageVersion);
-    core.setOutput('helm-release-version', result.helmReleaseName);
+    if (result.previewUrl) {
+        core.setOutput('preview-url', result.previewUrl);
+    }
+    if (result.dockerImageVersion) {
+        core.setOutput('docker-image-version', result.dockerImageVersion);
+    }
+    if (result.helmReleaseName) {
+        core.setOutput('helm-release-name', result.helmReleaseName);
+    }
+    core.setOutput('success', result.success);
 };
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
@@ -613,7 +681,8 @@ function run() {
             helmKeyImage: core.getInput('helm-key-image'),
             helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
             helmKeyUrl: core.getInput('helm-key-url'),
-            helmKeyNamespace: core.getInput('helm-key-namespace')
+            helmKeyNamespace: core.getInput('helm-key-namespace'),
+            helmRemovePreviewCharts: core.getInput('helm-remove-preview-charts')
         };
         try {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
@@ -625,7 +694,7 @@ function run() {
             }
             else if (options.cmd === 'notify') {
                 const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
-                const hash = generate_hash_1.generateHash(pullRequestId, options.hashSalt);
+                const hash = crypto_util_1.generateHash(pullRequestId, options.hashSalt);
                 const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
                 const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
                 yield sticky_comment_1.postOrUpdateGithubComment('brewing', options, completePreviewUrl);
@@ -633,15 +702,21 @@ function run() {
                     success: true
                 });
             }
-            else {
+            else if (options.cmd === 'remove') {
                 const result = yield clear_preview_1.clearPreviewsForCurrentPullRequest(options);
                 setOutputFromResult(result);
                 yield sticky_comment_1.postOrUpdateGithubComment('removed', options);
+            }
+            else {
+                throw new Error(`Command ${options.cmd} not supported`);
             }
             core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
         }
         catch (error) {
             yield sticky_comment_1.postOrUpdateGithubComment('fail', options);
+            setOutputFromResult({
+                success: false
+            });
             core.error(error);
             core.setFailed(error.message);
         }
@@ -6448,6 +6523,158 @@ function removeHook (state, name, method) {
 
 
 	return CryptoJS;
+
+}));
+
+/***/ }),
+
+/***/ 8025:
+/***/ (function(module, exports, __webpack_require__) {
+
+;(function (root, factory) {
+	if (true) {
+		// CommonJS
+		module.exports = exports = factory(__webpack_require__(425));
+	}
+	else {}
+}(this, function (CryptoJS) {
+
+	(function () {
+	    // Shortcuts
+	    var C = CryptoJS;
+	    var C_lib = C.lib;
+	    var WordArray = C_lib.WordArray;
+	    var C_enc = C.enc;
+
+	    /**
+	     * Base64 encoding strategy.
+	     */
+	    var Base64 = C_enc.Base64 = {
+	        /**
+	         * Converts a word array to a Base64 string.
+	         *
+	         * @param {WordArray} wordArray The word array.
+	         *
+	         * @return {string} The Base64 string.
+	         *
+	         * @static
+	         *
+	         * @example
+	         *
+	         *     var base64String = CryptoJS.enc.Base64.stringify(wordArray);
+	         */
+	        stringify: function (wordArray) {
+	            // Shortcuts
+	            var words = wordArray.words;
+	            var sigBytes = wordArray.sigBytes;
+	            var map = this._map;
+
+	            // Clamp excess bits
+	            wordArray.clamp();
+
+	            // Convert
+	            var base64Chars = [];
+	            for (var i = 0; i < sigBytes; i += 3) {
+	                var byte1 = (words[i >>> 2]       >>> (24 - (i % 4) * 8))       & 0xff;
+	                var byte2 = (words[(i + 1) >>> 2] >>> (24 - ((i + 1) % 4) * 8)) & 0xff;
+	                var byte3 = (words[(i + 2) >>> 2] >>> (24 - ((i + 2) % 4) * 8)) & 0xff;
+
+	                var triplet = (byte1 << 16) | (byte2 << 8) | byte3;
+
+	                for (var j = 0; (j < 4) && (i + j * 0.75 < sigBytes); j++) {
+	                    base64Chars.push(map.charAt((triplet >>> (6 * (3 - j))) & 0x3f));
+	                }
+	            }
+
+	            // Add padding
+	            var paddingChar = map.charAt(64);
+	            if (paddingChar) {
+	                while (base64Chars.length % 4) {
+	                    base64Chars.push(paddingChar);
+	                }
+	            }
+
+	            return base64Chars.join('');
+	        },
+
+	        /**
+	         * Converts a Base64 string to a word array.
+	         *
+	         * @param {string} base64Str The Base64 string.
+	         *
+	         * @return {WordArray} The word array.
+	         *
+	         * @static
+	         *
+	         * @example
+	         *
+	         *     var wordArray = CryptoJS.enc.Base64.parse(base64String);
+	         */
+	        parse: function (base64Str) {
+	            // Shortcuts
+	            var base64StrLength = base64Str.length;
+	            var map = this._map;
+	            var reverseMap = this._reverseMap;
+
+	            if (!reverseMap) {
+	                    reverseMap = this._reverseMap = [];
+	                    for (var j = 0; j < map.length; j++) {
+	                        reverseMap[map.charCodeAt(j)] = j;
+	                    }
+	            }
+
+	            // Ignore padding
+	            var paddingChar = map.charAt(64);
+	            if (paddingChar) {
+	                var paddingIndex = base64Str.indexOf(paddingChar);
+	                if (paddingIndex !== -1) {
+	                    base64StrLength = paddingIndex;
+	                }
+	            }
+
+	            // Convert
+	            return parseLoop(base64Str, base64StrLength, reverseMap);
+
+	        },
+
+	        _map: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/='
+	    };
+
+	    function parseLoop(base64Str, base64StrLength, reverseMap) {
+	      var words = [];
+	      var nBytes = 0;
+	      for (var i = 0; i < base64StrLength; i++) {
+	          if (i % 4) {
+	              var bits1 = reverseMap[base64Str.charCodeAt(i - 1)] << ((i % 4) * 2);
+	              var bits2 = reverseMap[base64Str.charCodeAt(i)] >>> (6 - (i % 4) * 2);
+	              var bitsCombined = bits1 | bits2;
+	              words[nBytes >>> 2] |= bitsCombined << (24 - (nBytes % 4) * 8);
+	              nBytes++;
+	          }
+	      }
+	      return WordArray.create(words, nBytes);
+	    }
+	}());
+
+
+	return CryptoJS.enc.Base64;
+
+}));
+
+/***/ }),
+
+/***/ 3098:
+/***/ (function(module, exports, __webpack_require__) {
+
+;(function (root, factory) {
+	if (true) {
+		// CommonJS
+		module.exports = exports = factory(__webpack_require__(425));
+	}
+	else {}
+}(this, function (CryptoJS) {
+
+	return CryptoJS.enc.Utf8;
 
 }));
 

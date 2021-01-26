@@ -70,6 +70,10 @@ inputs:
     required: true
     default: "1.0"
     description: "Major tag when tagging helm chart previews, example: 1.0"
+  helm-remove-preview-charts:
+    required: true
+    default: "true"
+    description: "Remove all preview helm charts when calling command remove"
 
   helm-key-appname:
     required: true
