@@ -122,7 +122,7 @@ inputs:
     description: "Base preview url, example preview.domain.com"
   cluster-issuer:
     required: true
-    default: vn-letsencrypt-issuer
+    default: vn-letsencrypt-preview-issuer
     description: "Name of cluster issuer to use"
   tls-secret-name:
     required: true
