@@ -126,7 +126,7 @@ inputs:
     description: "Name of cluster issuer to use"
   tls-secret-name:
     required: true
-    default: vn-preview-cert
+    default: vn-preview-wild
     description: "Certificate secret name. Use a shared name for wildcard certs"
 
 outputs:
