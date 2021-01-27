@@ -65,9 +65,16 @@ export const clearPreviewsForCurrentPullRequest = async (
 
   if (shouldRemoveCharts) {
     core.info('Removing charts..');
-
+    // https://helm.kube.vendanor.com/api/charts/vn-connect-app
     const url = `${helmRepoUrl}/api/charts/${appName}`;
-    const allCharts = await axios.get<ChartListResult>(url);
+    core.info('url: ' + url);
+    const allCharts = await axios.get<ChartListResult>(url, {
+      auth: {
+        username: helmRepoUsername,
+        password: helmRepoPassword
+      },
+      responseType: 'json'
+    });
     core.info(
       `Fetch list of charts: ${allCharts.status} - ${allCharts.statusText}`
     );
@@ -89,9 +96,10 @@ export const clearPreviewsForCurrentPullRequest = async (
         `${helmRepoUrl}/api/charts/${name}/${version}`,
         {
           auth: {
-            username: options.helmRepoUsername,
-            password: options.helmRepoPassword
-          }
+            username: helmRepoUsername,
+            password: helmRepoPassword
+          },
+          responseType: 'json'
         }
       );
       core.info(

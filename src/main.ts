@@ -85,7 +85,6 @@ async function run(): Promise<void> {
       success: false
     });
     core.error(error);
-
     core.setFailed(error.message);
   }
 }
