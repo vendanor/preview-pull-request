@@ -11,12 +11,17 @@ This action will:
  - deploy chart / preview in Kubernetes
  - add a preview comment to pull request with link to preview
  - return preview url and other useful stuff
+ - remove previews from Kubernetes and Helm chart repo when closing PR
 
 ![illustration](illustration.png)
 
 Example message in PR:
 ![comment](comment.png)
 
+If you specify `helm-repo-url` when deploying, charts are also published to given helm chart repository.
+This makes it possible to also deploy a specific chart/version to production, as a release candidate etc.
+By default, preview charts are deleted from chart repository when PR is closed.
+Set `helm-remove-preview-charts=false` if you want to keep them.
 
 ## Usage
 1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, 
@@ -40,6 +45,16 @@ containersuffix: production
 clusterIssuer: my-cluster-issuer
 tlsSecretName: myapp-cert
 ```
+
+if your `values.yaml` file looks different, you can specify which keys to change.
+If your `values.yaml` looks like this:
+```yaml
+docker:
+  basic:
+    dockerImage: ghcr.io/company/myapp:latest
+```
+
+set action input `helm-key-image=docker.basic.dockerImage`.
 
 Example `ingress.yml` in Helm chart:  
 ```yaml
@@ -143,8 +158,8 @@ jobs:
           docker-image-name: my-app
           docker-pullsecret: ${{ secrets.PULLSECRET }}
           helm-chart: charts/myapp
-          cluster-issuer: my-preview-cluster-issuer # name of clusterissuer. If you want to use wildcard certificate, issuer needs to be able to resolve DNS challenges
-          tls-secret-name: preview-wildcard-cert # shared wildcard cert name, or dynamic from appname
+          cluster-issuer: preview-issuer 
+          tls-secret-name: cert-wild 
 
   remove_preview:
     name: Remove app previews from VnKubePreview
@@ -168,20 +183,20 @@ jobs:
 ```
 
 ## Certificates
-This action only supports cert-manager ClusterIssuer for now. You can setup VnKubePreview using
-unique certificates per preview, or a shared wildcard certificate. The latter is preferred
-if you want to avoid letsencrypt's rate limits.
+You can use VnKubePreview with a unique certificates per preview, 
+or a shared wildcard certificate. The latter is preferred if you want to avoid 
+letsencrypt's rate limits.
 
 ### Unique certificates
-When deploying previews, set `cluster-issuer` to and issuer with support for resolving HTTP challenges.
+When deploying previews, set `cluster-issuer` to an issuer with support for resolving HTTP01 challenges.
 Set `tls-secret-name` to a dynamic value to get a unique certificate for each PR.
 
 ### Wildcard certificates
-Add a ClusterIssuer which can resolve DNS01 challenges. cert-manager supports a few well known DNS services.
+Add a ClusterIssuer which can resolve DNS01 challenges. Kubernetes cert-manager supports a few well known DNS services.
  [Here is an example](https://cert-manager.io/docs/configuration/acme/dns01/azuredns/) 
 using letsencrypt, Azure DNS and DNS01 resolver (to enable issuing wildcard certs):
 
-```
+```yaml
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -210,13 +225,24 @@ spec:
 
 ```
 
-## More info
-If your `values.yaml` is different from example above, you can change which keys to set, see [action.yml](action.yml) for more info.
+Then request a wildcard certificate:
 
-If you specify `helm-repo-url` when deploying, charts are also published to given helm chart repository.
-This makes it possible to also deploy a specific chart/version to production, as a release candidate etc.
-
-## Future improvements
-- Update message in PR when starting build?
-- Better way to pass custom values?
-
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: cert-wild
+  namespace: preview
+spec:
+  secretName: wild-cert
+  issuerRef:
+    name: preview-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - "*.preview.company.com"
+  duration: 2160h # 90d
+  renewBefore: 360h # 15d
+  subject:
+    organizations:
+      - company
+```
