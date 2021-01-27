@@ -25,8 +25,7 @@ export const clearPreviewsForCurrentPullRequest = async (
 
   const pullRequestId = await getCurrentPullRequestId(githubToken);
   const shouldRemoveCharts: boolean =
-    helmRemovePreviewCharts.toLowerCase() === 'true' &&
-    helmRepoUrl !== undefined;
+    helmRemovePreviewCharts.toLowerCase() === 'true';
   const regexCurrentVersion = new RegExp(
     `\\b${PREVIEW_TAG_PREFIX}.${pullRequestId}.\\b`
   );
@@ -65,9 +64,25 @@ export const clearPreviewsForCurrentPullRequest = async (
 
   if (shouldRemoveCharts) {
     core.info('Removing charts..');
-    // https://helm.kube.vendanor.com/api/charts/vn-connect-app
+    if (helmRepoUrl === undefined || helmRepoUrl.length === 0) {
+      throw new Error('helm-repo-url is required when removing preview charts');
+    }
+    if (helmRepoUsername.length === 0) {
+      throw new Error(
+        'helm-repo-username is required when removing preview charts'
+      );
+    }
+    if (helmRepoPassword.length === 0) {
+      throw new Error(
+        'helm-repo-password is required when removing preview charts'
+      );
+    }
+    if (appName.length === 0) {
+      throw new Error('app-name is required when removing preview charts');
+    }
+
     const url = `${helmRepoUrl}/api/charts/${appName}`;
-    core.info('url: ' + url);
+    core.info('Get a list of all charts for app, url: ' + url);
     const allCharts = await axios.get<ChartListResult>(url, {
       auth: {
         username: helmRepoUsername,
@@ -79,15 +94,16 @@ export const clearPreviewsForCurrentPullRequest = async (
       `Fetch list of charts: ${allCharts.status} - ${allCharts.statusText}`
     );
 
-    core.info('All charts');
-    core.info(JSON.stringify(allCharts.data, null, 2));
+    // core.info('All charts');
+    // core.info(JSON.stringify(allCharts.data, null, 2));
 
     const filteredCharts = allCharts.data.filter(
       c => c.name === appName && regexCurrentVersion.test(c.version)
     );
 
-    core.info('filtered charts to delete');
-    core.info(JSON.stringify(filteredCharts, null, 2));
+    // core.info('filtered charts to delete');
+    // core.info(JSON.stringify(filteredCharts, null, 2));
+    core.info(`Found ${filteredCharts.length} preview charts to delete`);
 
     for (let i = 0; i < filteredCharts.length; i++) {
       const { name, version } = filteredCharts[i];
