@@ -73,7 +73,11 @@ export async function createComment(
       : `${body}\n${headerComment(header)}`
   });
 }
-export async function deleteComment(token: string, repo: Repo, comment_id: number) {
+export async function deleteComment(
+  token: string,
+  repo: Repo,
+  comment_id: number
+) {
   const octokit = new GitHub({
     auth: token
   });

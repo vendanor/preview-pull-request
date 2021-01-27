@@ -6,9 +6,11 @@ import {
   getCurrentPullRequestId,
   getLatestCommitShortSha
 } from './github-util';
-import { generateHash } from './generate-hash';
 import { runCmd } from './run-cmd';
 import { loginContainerRegistry } from './docker-util';
+import { generateHash } from './crypto-util';
+
+export const PREVIEW_TAG_PREFIX = '-preview';
 
 /**
  * This will:
@@ -35,7 +37,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
   const context = await getCurrentContext();
   const githubRunNumber = context.runNumber;
-  const tagPostfix = `-preview.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
+  const tagPostfix = `${PREVIEW_TAG_PREFIX}.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
 
   // == DOCKER ==
   // build docker image
@@ -131,7 +133,9 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     `${options.helmKeyPullSecret}=${options.dockerPullSecret}`,
     `${options.helmKeyUrl}=${completePreviewUrl}`,
     `${options.helmKeyAppName}=${previewUrlIdentifier}`,
-    `${options.helmKeyContainerSuffix}=${githubRunNumber}`
+    `${options.helmKeyContainerSuffix}=${githubRunNumber}`,
+    `${options.helmKeyClusterIssuer}=${options.clusterIssuer}`,
+    `${options.helmKeyTlsSecretName}=${options.TlsSecretName}`
   ].join(',');
 
   const finalResult = await runCmd('helm', [

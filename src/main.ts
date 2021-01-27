@@ -4,13 +4,20 @@ import { clearPreviewsForCurrentPullRequest } from './clear-preview';
 import { deployPreview } from './deploy-preview';
 import { dilbert } from './dilbert';
 import { postOrUpdateGithubComment } from './sticky-comment';
-import { generateHash } from './generate-hash';
 import { getCurrentPullRequestId } from './github-util';
+import { generateHash } from './crypto-util';
 
 const setOutputFromResult = (result: CommandResult) => {
-  core.setOutput('preview-url', result.previewUrl);
-  core.setOutput('docker-image-version', result.dockerImageVersion);
-  core.setOutput('helm-release-version', result.helmReleaseName);
+  if (result.previewUrl) {
+    core.setOutput('preview-url', result.previewUrl);
+  }
+  if (result.dockerImageVersion) {
+    core.setOutput('docker-image-version', result.dockerImageVersion);
+  }
+  if (result.helmReleaseName) {
+    core.setOutput('helm-release-name', result.helmReleaseName);
+  }
+  core.setOutput('success', result.success);
 };
 
 async function run(): Promise<void> {
@@ -40,7 +47,12 @@ async function run(): Promise<void> {
     helmKeyImage: core.getInput('helm-key-image'),
     helmKeyPullSecret: core.getInput('helm-key-pullsecret'),
     helmKeyUrl: core.getInput('helm-key-url'),
-    helmKeyNamespace: core.getInput('helm-key-namespace')
+    helmKeyNamespace: core.getInput('helm-key-namespace'),
+    helmRemovePreviewCharts: core.getInput('helm-remove-preview-charts'),
+    helmKeyTlsSecretName: core.getInput('helm-key-tls-secret-name'),
+    helmKeyClusterIssuer: core.getInput('helm-key-cluster-issuer'),
+    clusterIssuer: core.getInput('cluster-issuer'),
+    TlsSecretName: core.getInput('tls-secret-name')
   };
 
   try {
@@ -59,14 +71,19 @@ async function run(): Promise<void> {
       setOutputFromResult({
         success: true
       });
-    } else {
+    } else if (options.cmd === 'remove') {
       const result = await clearPreviewsForCurrentPullRequest(options);
       setOutputFromResult(result);
       await postOrUpdateGithubComment('removed', options);
+    } else {
+      throw new Error(`Command ${options.cmd} not supported`);
     }
     core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
   } catch (error) {
     await postOrUpdateGithubComment('fail', options);
+    setOutputFromResult({
+      success: false
+    });
     core.error(error);
     core.setFailed(error.message);
   }
