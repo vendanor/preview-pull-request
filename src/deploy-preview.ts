@@ -1,6 +1,11 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
-import { CommandResult, Options } from './common';
+import {
+  CommandResult,
+  Options,
+  PREVIEW_TAG_PREFIX,
+  validateOptions
+} from './common';
 import {
   getCurrentContext,
   getCurrentPullRequestId,
@@ -10,19 +15,6 @@ import { runCmd } from './run-cmd';
 import { loginContainerRegistry } from './docker-util';
 import { generateHash } from './crypto-util';
 
-export const PREVIEW_TAG_PREFIX = '-preview';
-
-/**
- * This will:
- * - build docker image + tag with correct semver meta preview tags
- * - publish docker image to container registry
- * - build helm chart + tag with preview semver meta tags
- * - publish helm chart to chart repo (mandatory or optional?)
- * - deploy chart / preview in Kubernetes
- * - add a preview comment to pull request
- * - return preview url, helm chart name, docker image name
- * @param options
- */
 export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Starting deploy preview...');
 
@@ -39,8 +31,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const githubRunNumber = context.runNumber;
   const tagPostfix = `${PREVIEW_TAG_PREFIX}.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
 
-  // == DOCKER ==
-  // build docker image
+  // Build docker image
   const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
   const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
   core.info('Building docker image: ' + dockerImageVersion);
@@ -59,16 +50,16 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const dockerPushResult = await runCmd('docker', ['push', dockerImageName]);
   core.info('Push docker image result: ' + dockerPushResult.resultCode);
 
-  // === HELM chart ===
+  // Pack Helm chart
   const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
   const chartFilenameWithoutFolder = options.helmChartFilePath.replace(
     /^.*[\\\/]/,
     ''
   );
   const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
-
   const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
-  core.info('installing plugin...');
+
+  core.info('Installing helm-pack plugin...');
   const pluginResult = await exec.exec('helm', [
     'plugin',
     'install',
@@ -120,7 +111,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     core.info('helm-repo-url was not set, skipping publish helm chart');
   }
 
-  // === Install or upgrade Helm preview release! ===
+  // Install or upgrade Helm preview release
   core.info('Ready to deploy to AKS...');
   const hash = generateHash(pullRequestId, options.hashSalt);
   const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
@@ -156,7 +147,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     success: finalResult.resultCode === 0
   };
 
-  core.info('All done! Printing returned result..');
   core.info(JSON.stringify(result, null, 2));
+  core.info('All done!');
   return result;
 }

@@ -2,15 +2,16 @@ import {
   ChartListResult,
   CommandResult,
   HelmListResult,
-  Options
+  Options,
+  PREVIEW_TAG_PREFIX,
+  validateOptions
 } from './common';
 import * as core from '@actions/core';
 import { runCmd } from './run-cmd';
 import { getCurrentPullRequestId } from './github-util';
-import { PREVIEW_TAG_PREFIX } from './deploy-preview';
 import axios from 'axios';
 
-export const clearPreviewsForCurrentPullRequest = async (
+export const removePreviewsForCurrentPullRequest = async (
   options: Options
 ): Promise<CommandResult> => {
   const {
@@ -64,22 +65,12 @@ export const clearPreviewsForCurrentPullRequest = async (
 
   if (shouldRemoveCharts) {
     core.info('Removing charts..');
-    if (helmRepoUrl === undefined || helmRepoUrl.length === 0) {
-      throw new Error('helm-repo-url is required when removing preview charts');
-    }
-    if (helmRepoUsername.length === 0) {
-      throw new Error(
-        'helm-repo-username is required when removing preview charts'
-      );
-    }
-    if (helmRepoPassword.length === 0) {
-      throw new Error(
-        'helm-repo-password is required when removing preview charts'
-      );
-    }
-    if (appName.length === 0) {
-      throw new Error('app-name is required when removing preview charts');
-    }
+    validateOptions(options, 'remove', [
+      'helmRepoUrl',
+      'helmRepoUsername',
+      'helmRepoPassword',
+      'appName'
+    ]);
 
     const url = `${helmRepoUrl}/api/charts/${appName}`;
     core.info('Get a list of all charts for app, url: ' + url);

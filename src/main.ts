@@ -1,6 +1,6 @@
 import * as core from '@actions/core';
-import { CommandResult, Options } from './common';
-import { clearPreviewsForCurrentPullRequest } from './clear-preview';
+import { CommandResult, Options, validateOptions } from './common';
+import { removePreviewsForCurrentPullRequest } from './remove-preview';
 import { deployPreview } from './deploy-preview';
 import { dilbert } from './dilbert';
 import { postOrUpdateGithubComment } from './sticky-comment';
@@ -59,10 +59,28 @@ async function run(): Promise<void> {
     core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
     core.info(dilbert);
     if (options.cmd === 'deploy') {
+      validateOptions(options, 'deploy', [
+        'appName',
+        'dockerUsername',
+        'dockerPassword',
+        'dockerRegistry',
+        'dockerOrganization',
+        'githubToken',
+        'dockerTagMajor',
+        'helmTagMajor',
+        'helmChartFilePath',
+        'hashSalt'
+      ]);
       const result = await deployPreview(options);
       setOutputFromResult(result);
       await postOrUpdateGithubComment('success', options, result.previewUrl);
     } else if (options.cmd === 'notify') {
+      validateOptions(options, 'notify', [
+        'githubToken',
+        'hashSalt',
+        'appName',
+        'baseUrl'
+      ]);
       const pullRequestId = await getCurrentPullRequestId(options.githubToken);
       const hash = generateHash(pullRequestId, options.hashSalt);
       const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
@@ -72,7 +90,12 @@ async function run(): Promise<void> {
         success: true
       });
     } else if (options.cmd === 'remove') {
-      const result = await clearPreviewsForCurrentPullRequest(options);
+      validateOptions(options, 'remove', [
+        'githubToken',
+        'helmNamespace',
+        'appName'
+      ]);
+      const result = await removePreviewsForCurrentPullRequest(options);
       setOutputFromResult(result);
       await postOrUpdateGithubComment('removed', options);
     } else {

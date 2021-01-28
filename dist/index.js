@@ -2,136 +2,64 @@ require('./sourcemap-register.js');module.exports =
 /******/ (() => { // webpackBootstrap
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 3353:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+/***/ 6979:
+/***/ ((__unused_webpack_module, exports) => {
 
 "use strict";
 
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.clearPreviewsForCurrentPullRequest = void 0;
-const core = __importStar(__webpack_require__(2186));
-const run_cmd_1 = __webpack_require__(7537);
-const github_util_1 = __webpack_require__(2762);
-const deploy_preview_1 = __webpack_require__(958);
-const axios_1 = __importDefault(__webpack_require__(6545));
-const clearPreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 0, void 0, function* () {
-    const { appName, githubToken, helmNamespace, helmRemovePreviewCharts, helmRepoPassword, helmRepoUrl, helmRepoUsername } = options;
-    const pullRequestId = yield github_util_1.getCurrentPullRequestId(githubToken);
-    const shouldRemoveCharts = helmRemovePreviewCharts.toLowerCase() === 'true';
-    const regexCurrentVersion = new RegExp(`\\b${deploy_preview_1.PREVIEW_TAG_PREFIX}.${pullRequestId}.\\b`);
-    core.info(`Removing previews for pull request ${pullRequestId}...`);
-    const cmdResult = yield run_cmd_1.runCmd('helm', [
-        'list',
-        '--namespace',
-        helmNamespace,
-        '--filter',
-        `preview-${appName}-${pullRequestId}`,
-        '--output',
-        'json'
-    ]);
-    core.info('Helm list result: ' + cmdResult.resultCode);
-    core.info(cmdResult.output);
-    const json = JSON.parse(cmdResult.output);
-    for (let index = 0; index < json.length; index++) {
-        const release = json[index];
-        core.info(`Removing release ${release.name} (${release.app_version}) from Kubernetes`);
-        const removeResult = yield run_cmd_1.runCmd('helm', [
-            'uninstall',
-            release.name,
-            '--namespace',
-            helmNamespace
-        ]);
-        if (removeResult.resultCode === 0) {
-            core.info(removeResult.output);
+exports.validateOptions = exports.PREVIEW_TAG_PREFIX = void 0;
+exports.PREVIEW_TAG_PREFIX = '-preview';
+const optionsDict = {
+    appName: 'app-name',
+    helmRepoPassword: 'helm-repo-password',
+    helmRepoUsername: 'helm-repo-username',
+    helmRepoUrl: 'helm-repo-url',
+    TlsSecretName: 'tls-secret-name',
+    clusterIssuer: 'cluster-issuer',
+    helmKeyClusterIssuer: 'helm-key-cluster-issuer',
+    helmKeyTlsSecretName: 'helm-key-tls-secret-name',
+    helmRemovePreviewCharts: 'helm-preview-charts',
+    cmd: 'command',
+    helmKeyUrl: 'helm-key-url',
+    helmKeyNamespace: 'helm-key-namespace',
+    helmKeyImage: 'helm-key-image',
+    helmKeyContainerSuffix: 'helm-key-container-suffix',
+    helmChartFilePath: 'helm-chart',
+    githubToken: 'token',
+    baseUrl: 'base-url',
+    dockerPullSecret: 'docker-pull-secret',
+    helmNamespace: 'helm-namespace',
+    dockerTagMajor: 'docker-tag-major',
+    helmOrganization: 'helm-organization',
+    helmTagMajor: 'helm-tag-major',
+    dockerPassword: 'docker-password',
+    dockerUsername: 'docker-username',
+    dockerRegistry: 'docker-registry',
+    dockerOrganization: 'docker-organization',
+    dockerImageName: 'docker-image-name',
+    dockerFile: 'docker-file',
+    hashSalt: 'hash-salt',
+    helmKeyAppName: 'helm-key-app-name',
+    helmKeyPullSecret: 'helm-key-pullsecret'
+};
+function validateOptions(options, command, requiredOptions) {
+    const errorMessages = [];
+    requiredOptions.forEach(value => {
+        var _a;
+        if (options[value] === undefined) {
+            errorMessages.push(`Option ${optionsDict[value]} is required for command ${command}`);
         }
-        else {
-            core.error(removeResult.output);
+        else if (typeof options[value] === 'string' &&
+            ((_a = options[value]) === null || _a === void 0 ? void 0 : _a.length) === 0) {
+            errorMessages.push(`Option ${optionsDict[value]} is required for command ${command}`);
         }
+    });
+    if (errorMessages.length) {
+        throw new Error(errorMessages.join('\n'));
     }
-    if (shouldRemoveCharts) {
-        core.info('Removing charts..');
-        if (helmRepoUrl === undefined || helmRepoUrl.length === 0) {
-            throw new Error('helm-repo-url is required when removing preview charts');
-        }
-        if (helmRepoUsername.length === 0) {
-            throw new Error('helm-repo-username is required when removing preview charts');
-        }
-        if (helmRepoPassword.length === 0) {
-            throw new Error('helm-repo-password is required when removing preview charts');
-        }
-        if (appName.length === 0) {
-            throw new Error('app-name is required when removing preview charts');
-        }
-        const url = `${helmRepoUrl}/api/charts/${appName}`;
-        core.info('Get a list of all charts for app, url: ' + url);
-        const allCharts = yield axios_1.default.get(url, {
-            auth: {
-                username: helmRepoUsername,
-                password: helmRepoPassword
-            },
-            responseType: 'json'
-        });
-        core.info(`Fetch list of charts: ${allCharts.status} - ${allCharts.statusText}`);
-        // core.info('All charts');
-        // core.info(JSON.stringify(allCharts.data, null, 2));
-        const filteredCharts = allCharts.data.filter(c => c.name === appName && regexCurrentVersion.test(c.version));
-        // core.info('filtered charts to delete');
-        // core.info(JSON.stringify(filteredCharts, null, 2));
-        core.info(`Found ${filteredCharts.length} preview charts to delete`);
-        for (let i = 0; i < filteredCharts.length; i++) {
-            const { name, version } = filteredCharts[i];
-            core.info(`Deleting chart ${version}`);
-            const deleteResult = yield axios_1.default.delete(`${helmRepoUrl}/api/charts/${name}/${version}`, {
-                auth: {
-                    username: helmRepoUsername,
-                    password: helmRepoPassword
-                },
-                responseType: 'json'
-            });
-            core.info(`Delete result: ${deleteResult.status} ${deleteResult.statusText}`);
-        }
-        core.info('Done deleting helm charts');
-    }
-    else {
-        core.info('Skip removing charts..');
-    }
-    core.info(`All previews for app ${appName} deleted successfully!`);
-    return {
-        success: true
-    };
-});
-exports.clearPreviewsForCurrentPullRequest = clearPreviewsForCurrentPullRequest;
+}
+exports.validateOptions = validateOptions;
 
 
 /***/ }),
@@ -201,25 +129,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.deployPreview = exports.PREVIEW_TAG_PREFIX = void 0;
+exports.deployPreview = void 0;
 const core = __importStar(__webpack_require__(2186));
 const exec = __importStar(__webpack_require__(1514));
+const common_1 = __webpack_require__(6979);
 const github_util_1 = __webpack_require__(2762);
 const run_cmd_1 = __webpack_require__(7537);
 const docker_util_1 = __webpack_require__(7487);
 const crypto_util_1 = __webpack_require__(9255);
-exports.PREVIEW_TAG_PREFIX = '-preview';
-/**
- * This will:
- * - build docker image + tag with correct semver meta preview tags
- * - publish docker image to container registry
- * - build helm chart + tag with preview semver meta tags
- * - publish helm chart to chart repo (mandatory or optional?)
- * - deploy chart / preview in Kubernetes
- * - add a preview comment to pull request
- * - return preview url, helm chart name, docker image name
- * @param options
- */
 function deployPreview(options) {
     return __awaiter(this, void 0, void 0, function* () {
         core.info('Starting deploy preview...');
@@ -229,9 +146,8 @@ function deployPreview(options) {
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
         const context = yield github_util_1.getCurrentContext();
         const githubRunNumber = context.runNumber;
-        const tagPostfix = `${exports.PREVIEW_TAG_PREFIX}.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
-        // == DOCKER ==
-        // build docker image
+        const tagPostfix = `${common_1.PREVIEW_TAG_PREFIX}.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
+        // Build docker image
         const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
         const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
         core.info('Building docker image: ' + dockerImageVersion);
@@ -249,12 +165,12 @@ function deployPreview(options) {
         core.info('Push docker image...');
         const dockerPushResult = yield run_cmd_1.runCmd('docker', ['push', dockerImageName]);
         core.info('Push docker image result: ' + dockerPushResult.resultCode);
-        // === HELM chart ===
+        // Pack Helm chart
         const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
         const chartFilenameWithoutFolder = options.helmChartFilePath.replace(/^.*[\\\/]/, '');
         const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
         const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
-        core.info('installing plugin...');
+        core.info('Installing helm-pack plugin...');
         const pluginResult = yield exec.exec('helm', [
             'plugin',
             'install',
@@ -303,7 +219,7 @@ function deployPreview(options) {
         else {
             core.info('helm-repo-url was not set, skipping publish helm chart');
         }
-        // === Install or upgrade Helm preview release! ===
+        // Install or upgrade Helm preview release
         core.info('Ready to deploy to AKS...');
         const hash = crypto_util_1.generateHash(pullRequestId, options.hashSalt);
         const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
@@ -335,8 +251,8 @@ function deployPreview(options) {
             dockerImageVersion,
             success: finalResult.resultCode === 0
         };
-        core.info('All done! Printing returned result..');
         core.info(JSON.stringify(result, null, 2));
+        core.info('All done!');
         return result;
     });
 }
@@ -657,7 +573,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__webpack_require__(2186));
-const clear_preview_1 = __webpack_require__(3353);
+const common_1 = __webpack_require__(6979);
+const remove_preview_1 = __webpack_require__(9260);
 const deploy_preview_1 = __webpack_require__(958);
 const dilbert_1 = __webpack_require__(4809);
 const sticky_comment_1 = __webpack_require__(1788);
@@ -714,11 +631,29 @@ function run() {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
             core.info(dilbert_1.dilbert);
             if (options.cmd === 'deploy') {
+                common_1.validateOptions(options, 'deploy', [
+                    'appName',
+                    'dockerUsername',
+                    'dockerPassword',
+                    'dockerRegistry',
+                    'dockerOrganization',
+                    'githubToken',
+                    'dockerTagMajor',
+                    'helmTagMajor',
+                    'helmChartFilePath',
+                    'hashSalt'
+                ]);
                 const result = yield deploy_preview_1.deployPreview(options);
                 setOutputFromResult(result);
                 yield sticky_comment_1.postOrUpdateGithubComment('success', options, result.previewUrl);
             }
             else if (options.cmd === 'notify') {
+                common_1.validateOptions(options, 'notify', [
+                    'githubToken',
+                    'hashSalt',
+                    'appName',
+                    'baseUrl'
+                ]);
                 const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
                 const hash = crypto_util_1.generateHash(pullRequestId, options.hashSalt);
                 const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
@@ -729,7 +664,12 @@ function run() {
                 });
             }
             else if (options.cmd === 'remove') {
-                const result = yield clear_preview_1.clearPreviewsForCurrentPullRequest(options);
+                common_1.validateOptions(options, 'remove', [
+                    'githubToken',
+                    'helmNamespace',
+                    'appName'
+                ]);
+                const result = yield remove_preview_1.removePreviewsForCurrentPullRequest(options);
                 setOutputFromResult(result);
                 yield sticky_comment_1.postOrUpdateGithubComment('removed', options);
             }
@@ -749,6 +689,134 @@ function run() {
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 9260:
+/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.removePreviewsForCurrentPullRequest = void 0;
+const common_1 = __webpack_require__(6979);
+const core = __importStar(__webpack_require__(2186));
+const run_cmd_1 = __webpack_require__(7537);
+const github_util_1 = __webpack_require__(2762);
+const axios_1 = __importDefault(__webpack_require__(6545));
+const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 0, void 0, function* () {
+    const { appName, githubToken, helmNamespace, helmRemovePreviewCharts, helmRepoPassword, helmRepoUrl, helmRepoUsername } = options;
+    const pullRequestId = yield github_util_1.getCurrentPullRequestId(githubToken);
+    const shouldRemoveCharts = helmRemovePreviewCharts.toLowerCase() === 'true';
+    const regexCurrentVersion = new RegExp(`\\b${common_1.PREVIEW_TAG_PREFIX}.${pullRequestId}.\\b`);
+    core.info(`Removing previews for pull request ${pullRequestId}...`);
+    const cmdResult = yield run_cmd_1.runCmd('helm', [
+        'list',
+        '--namespace',
+        helmNamespace,
+        '--filter',
+        `preview-${appName}-${pullRequestId}`,
+        '--output',
+        'json'
+    ]);
+    core.info('Helm list result: ' + cmdResult.resultCode);
+    core.info(cmdResult.output);
+    const json = JSON.parse(cmdResult.output);
+    for (let index = 0; index < json.length; index++) {
+        const release = json[index];
+        core.info(`Removing release ${release.name} (${release.app_version}) from Kubernetes`);
+        const removeResult = yield run_cmd_1.runCmd('helm', [
+            'uninstall',
+            release.name,
+            '--namespace',
+            helmNamespace
+        ]);
+        if (removeResult.resultCode === 0) {
+            core.info(removeResult.output);
+        }
+        else {
+            core.error(removeResult.output);
+        }
+    }
+    if (shouldRemoveCharts) {
+        core.info('Removing charts..');
+        common_1.validateOptions(options, 'remove', [
+            'helmRepoUrl',
+            'helmRepoUsername',
+            'helmRepoPassword',
+            'appName'
+        ]);
+        const url = `${helmRepoUrl}/api/charts/${appName}`;
+        core.info('Get a list of all charts for app, url: ' + url);
+        const allCharts = yield axios_1.default.get(url, {
+            auth: {
+                username: helmRepoUsername,
+                password: helmRepoPassword
+            },
+            responseType: 'json'
+        });
+        core.info(`Fetch list of charts: ${allCharts.status} - ${allCharts.statusText}`);
+        // core.info('All charts');
+        // core.info(JSON.stringify(allCharts.data, null, 2));
+        const filteredCharts = allCharts.data.filter(c => c.name === appName && regexCurrentVersion.test(c.version));
+        // core.info('filtered charts to delete');
+        // core.info(JSON.stringify(filteredCharts, null, 2));
+        core.info(`Found ${filteredCharts.length} preview charts to delete`);
+        for (let i = 0; i < filteredCharts.length; i++) {
+            const { name, version } = filteredCharts[i];
+            core.info(`Deleting chart ${version}`);
+            const deleteResult = yield axios_1.default.delete(`${helmRepoUrl}/api/charts/${name}/${version}`, {
+                auth: {
+                    username: helmRepoUsername,
+                    password: helmRepoPassword
+                },
+                responseType: 'json'
+            });
+            core.info(`Delete result: ${deleteResult.status} ${deleteResult.statusText}`);
+        }
+        core.info('Done deleting helm charts');
+    }
+    else {
+        core.info('Skip removing charts..');
+    }
+    core.info(`All previews for app ${appName} deleted successfully!`);
+    return {
+        success: true
+    };
+});
+exports.removePreviewsForCurrentPullRequest = removePreviewsForCurrentPullRequest;
 
 
 /***/ }),
