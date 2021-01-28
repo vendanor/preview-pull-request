@@ -1,9 +1,9 @@
-# VnKubePreview
+# preview-pull-request
 
 ## Description
 A Github Action to deploy previews of Pull Requests to AKS - Azure Kubernetes Service using Helm charts 🚀
 
-This action will:
+Deploy previews
  - build docker image + tag with meta preview tags
  - publish docker image to container registry
  - build helm chart + tag with meta tags
@@ -11,7 +11,10 @@ This action will:
  - deploy chart / preview in Kubernetes
  - add a preview comment to pull request with link to preview
  - return preview url and other useful stuff
- - remove previews from Kubernetes and Helm chart repo when closing PR
+
+Remove previews when closing PR
+- remove previews (Helm release) from Kubernetes
+- remove Helm charts from chart repo (optional)
 
 ![illustration](illustration.png)
 
@@ -26,10 +29,10 @@ Set `helm-remove-preview-charts=false` if you want to keep them.
 ## Usage
 1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, 
    `pullsecret`, `url`, `cluster-issuer`, `tls-secret-name` is defined
-with values that can be overridden. VnKubePreviewAction will generate values per Pull Request
+with values that can be overridden. This action will generate values per Pull Request
 and set these when packaging the helm chart.
-2. Set AKS context using `azure/k8s-set-context` in your ci/cd setup
-3. Use VnKubePreviewAction to deploy and remove previews when opening or closing pull request.
+2. Set AKS context using `azure/k8s-set-context`
+3. Use `preview-pull-request` to deploy and remove previews when opening or closing pull request.
 
 ### 1. Define Helm chart
 
@@ -46,7 +49,7 @@ clusterIssuer: my-cluster-issuer
 tlsSecretName: myapp-cert
 ```
 
-if your `values.yaml` file looks different, you can specify which keys to change.
+if your `values.yaml` file looks different, you can specify which keys to change when adding a preview.
 If your `values.yaml` looks like this:
 ```yaml
 docker:
@@ -54,7 +57,7 @@ docker:
     dockerImage: ghcr.io/company/myapp:latest
 ```
 
-set action input `helm-key-image=docker.basic.dockerImage`.
+set action input `helm-key-image=docker.basic.dockerImage` to set correct key when packaging Helm chart.
 
 Example `ingress.yml` in Helm chart:  
 ```yaml
@@ -141,11 +144,11 @@ jobs:
         uses: azure/k8s-set-context@v1
         with:
           method: kubeconfig
-          kubeconfig: ${{ secrets.KUBECONFIG }}
+          kubeconfig: ${{ secrets.KUBECONFIG_STAGING }}
 
       - name: Deploy app to VnKubePreview
         id: deploy_preview_step
-        uses: vendanor/VnKubePreviewAction@latest
+        uses: vendanor/preview-pull-request@latest
         with:
           command: deploy
           app-name: myapp
@@ -162,7 +165,7 @@ jobs:
           tls-secret-name: cert-wild 
 
   remove_preview:
-    name: Remove app previews from VnKubePreview
+    name: Remove previews
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
 
@@ -175,7 +178,7 @@ jobs:
           kubeconfig: ${{ env.KUBECONFIG }}
 
       - name: Remove previews related to PR
-        uses: vendanor/VnKubePreviewAction@latest
+        uses: vendanor/preview-pull-request@latest
         with:
           command: remove
           app-name: myapp
@@ -183,9 +186,8 @@ jobs:
 ```
 
 ## Certificates
-You can use VnKubePreview with a unique certificates per preview, 
-or a shared wildcard certificate. The latter is preferred if you want to avoid 
-letsencrypt's rate limits.
+You can use `preview-pull-request` with a unique certificate per preview, 
+or a shared wildcard certificate. 
 
 ### Unique certificates
 When deploying previews, set `cluster-issuer` to an issuer with support for resolving HTTP01 challenges.
