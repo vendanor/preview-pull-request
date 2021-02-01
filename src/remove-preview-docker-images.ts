@@ -162,9 +162,9 @@ export async function removePreviewDockerImages(
   core.info('Getting list of versions in ' + repository);
   const list = await getOldestVersions(
     options.dockerUsername,
-    repository,
+    `${options.dockerOrganization}${repository}`,
     options.dockerImageName,
-    5,
+    1, // ???
     options.githubToken
   );
   core.info(list.join('\n'));
@@ -179,8 +179,16 @@ export async function removePreviewDockerImages(
     core.info('fake delete: ' + filtered[i].version);
 
     // TODO: lets test logic before we start to delete stuff :)
-    // const deleteResult = await deletePackageVersion(filtered[i].version, options.githubToken);
+    const deleteResult = await deletePackageVersion(
+      filtered[i].id,
+      options.githubToken
+    );
   }
 
   core.info('Done deleting');
 }
+
+/**
+ GHCR - Github Container Registry
+
+ */

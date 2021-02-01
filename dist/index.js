@@ -695,154 +695,6 @@ run();
 
 /***/ }),
 
-/***/ 439:
-/***/ (function(__unused_webpack_module, exports, __webpack_require__) {
-
-"use strict";
-
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.removePreviewDockerImages = exports.getOldestVersions = exports.queryForOldestVersions = exports.deletePackageVersion = exports.query = void 0;
-const core = __importStar(__webpack_require__(2186));
-const utils_1 = __webpack_require__(3030);
-const common_1 = __webpack_require__(6979);
-function query(token, query, parameters) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const octokit = new utils_1.GitHub({
-            auth: token
-        });
-        return yield octokit.graphql(query, parameters);
-    });
-}
-exports.query = query;
-const mutation = `
-  mutation deletePackageVersion($packageVersionId: String!) {
-      deletePackageVersion(input: {packageVersionId: $packageVersionId}) {
-          success
-      }
-  }`;
-// copy from (except rxjs):
-// https://github.com/actions/delete-package-versions/blob/35f1b743a143bad14da97a62245ebb87c046c1e1/src/version/delete-version.ts
-function deletePackageVersion(packageVersionId, token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const result = yield query(token, mutation, {
-                headers: {
-                    Accept: 'application/vnd.github.package-deletes-preview+json'
-                }
-            });
-            return result.deletePackageVersion.success;
-        }
-        catch (err) {
-            core.error(err);
-            return false;
-        }
-    });
-}
-exports.deletePackageVersion = deletePackageVersion;
-const queryVersions = `
-  query getVersions($owner: String!, $repo: String!, $package: String!, $last: Int!) {
-    repository(owner: $owner, name: $repo) {
-      packages(first: 1, names: [$package]) {
-        edges {
-          node {
-            name
-            versions(last: $last) {
-              edges {
-                node {
-                  id
-                  version
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }`;
-function queryForOldestVersions(owner, repo, packageName, numVersions, token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const result = yield query(token, queryVersions, {
-            owner,
-            repo,
-            package: packageName,
-            last: numVersions,
-            headers: {
-                Accept: 'application/vnd.github.packages-preview+json'
-            }
-        });
-        return result;
-    });
-}
-exports.queryForOldestVersions = queryForOldestVersions;
-function getOldestVersions(owner, repo, packageName, numVersions, token) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const result = yield queryForOldestVersions(owner, repo, packageName, numVersions, token);
-        if (result.repository.packages.edges.length < 1) {
-            throw new Error(`package: ${packageName} not found for owner: ${owner} in repo: ${repo}`);
-        }
-        const versions = result.repository.packages.edges[0].node.versions.edges;
-        if (versions.length !== numVersions) {
-            core.info(`number of versions requested was: ${numVersions}, but found: ${versions.length}`);
-        }
-        return versions
-            .map(value => ({ id: value.node.id, version: value.node.version }))
-            .reverse();
-    });
-}
-exports.getOldestVersions = getOldestVersions;
-function removePreviewDockerImages(pullRequestId, options) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const regexCurrentVersion = new RegExp(`\\b${common_1.PREVIEW_TAG_PREFIX}.${pullRequestId}.\\b`);
-        // Get a list of all matching images
-        core.info(`Deleting docker preview images for PR ${pullRequestId}...`);
-        const repository = utils_1.context.repo.repo;
-        core.info('Getting list of versions in ' + repository);
-        const list = yield getOldestVersions(options.dockerUsername, repository, options.dockerImageName, 5, options.githubToken);
-        core.info(list.join('\n'));
-        const filtered = list.filter(c => regexCurrentVersion.test(c.version));
-        core.info(`Found ${list.length} versions where ${filtered.length} matched version to delete.`);
-        core.info(filtered.join('\n'));
-        for (let i = 0; i < filtered.length; i++) {
-            core.info('fake delete: ' + filtered[i].version);
-            // TODO: lets test logic before we start to delete stuff :)
-            // const deleteResult = await deletePackageVersion(filtered[i].version, options.githubToken);
-        }
-        core.info('Done deleting');
-    });
-}
-exports.removePreviewDockerImages = removePreviewDockerImages;
-
-
-/***/ }),
-
 /***/ 5701:
 /***/ (function(__unused_webpack_module, exports, __webpack_require__) {
 
@@ -970,7 +822,6 @@ const core = __importStar(__webpack_require__(2186));
 const run_cmd_1 = __webpack_require__(7537);
 const github_util_1 = __webpack_require__(2762);
 const remove_preview_helm_charts_1 = __webpack_require__(5701);
-const remove_preview_docker_images_1 = __webpack_require__(439);
 const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 0, void 0, function* () {
     const { appName, githubToken, helmNamespace, helmRemovePreviewCharts } = options;
     const pullRequestId = yield github_util_1.getCurrentPullRequestId(githubToken);
@@ -1011,7 +862,8 @@ const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 
         core.info('Skip removing Helm preview charts..');
     }
     if (options.dockerRemovePreviewImages.toLowerCase() === 'true') {
-        yield remove_preview_docker_images_1.removePreviewDockerImages(pullRequestId, options);
+        // await removePreviewDockerImages(pullRequestId, options);
+        core.warning('Skip removing docker preview images, not supported by GHCR.io yet!');
     }
     else {
         core.info('Skip removing docker preview images.');

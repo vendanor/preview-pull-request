@@ -58,7 +58,10 @@ export const removePreviewsForCurrentPullRequest = async (
   }
 
   if (options.dockerRemovePreviewImages.toLowerCase() === 'true') {
-    await removePreviewDockerImages(pullRequestId, options);
+    // await removePreviewDockerImages(pullRequestId, options);
+    core.warning(
+      'Skip removing docker preview images, not supported by GHCR.io yet!'
+    );
   } else {
     core.info('Skip removing docker preview images.');
   }
