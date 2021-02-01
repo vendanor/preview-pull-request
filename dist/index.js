@@ -826,6 +826,7 @@ function removePreviewDockerImages(pullRequestId, options) {
         const repository = utils_1.context.repo.repo;
         core.info('Getting list of versions in ' + repository);
         const list = yield getOldestVersions(options.dockerUsername, repository, options.dockerImageName, 5, options.githubToken);
+        core.info(list.join('\n'));
         const filtered = list.filter(c => regexCurrentVersion.test(c.version));
         core.info(`Found ${list.length} versions where ${filtered.length} matched version to delete.`);
         core.info(filtered.join('\n'));

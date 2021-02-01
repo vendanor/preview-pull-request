@@ -167,6 +167,7 @@ export async function removePreviewDockerImages(
     5,
     options.githubToken
   );
+  core.info(list.join('\n'));
 
   const filtered = list.filter(c => regexCurrentVersion.test(c.version));
 
