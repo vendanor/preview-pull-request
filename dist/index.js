@@ -640,6 +640,8 @@ function run() {
                     'dockerRegistry',
                     'dockerOrganization',
                     'githubToken',
+                    'dockerTagMajor',
+                    'helmTagMajor',
                     'helmChartFilePath',
                     'hashSalt'
                 ]);

@@ -44,10 +44,10 @@ inputs:
   docker-pullsecret:
     required: false
     description: "Docker pullsecret to use when pulling docker images from registry when deploying helm chart"
-docker-remove-preview-images:
-  required: true
-  default: "true"
-  description: "Remove all preview docker images from docker container registry when calling command remove"
+  docker-remove-preview-images:
+    required: true
+    default: "true"
+    description: "Remove all preview docker images from docker container registry when calling command remove"
 
   helm-namespace:
     required: false
