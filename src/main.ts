@@ -67,6 +67,8 @@ async function run(): Promise<void> {
         'dockerRegistry',
         'dockerOrganization',
         'githubToken',
+        'dockerTagMajor',
+        'helmTagMajor',
         'helmChartFilePath',
         'hashSalt'
       ]);
