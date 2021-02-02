@@ -1,11 +1,6 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
-import {
-  CommandResult,
-  Options,
-  PREVIEW_TAG_PREFIX,
-  validateOptions
-} from './common';
+import { CommandResult, Options, PREVIEW_TAG_PREFIX } from './common';
 import {
   getCurrentContext,
   getCurrentPullRequestId,
