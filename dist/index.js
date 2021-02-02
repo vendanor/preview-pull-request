@@ -41,7 +41,8 @@ const optionsDict = {
     dockerFile: 'docker-file',
     hashSalt: 'hash-salt',
     helmKeyAppName: 'helm-key-app-name',
-    helmKeyPullSecret: 'helm-key-pullsecret'
+    helmKeyPullSecret: 'helm-key-pullsecret',
+    helmValues: 'helm-values'
 };
 function validateOptions(options, command, requiredOptions) {
     const errorMessages = [];
@@ -234,7 +235,12 @@ function deployPreview(options) {
             `${options.helmKeyContainerSuffix}=${githubRunNumber}`,
             `${options.helmKeyClusterIssuer}=${options.clusterIssuer}`,
             `${options.helmKeyTlsSecretName}=${options.TlsSecretName}`
-        ].join(',');
+        ];
+        if (options.helmValues && options.helmValues.length > 0) {
+            const extraOverrides = options.helmValues.split(',');
+            core.info(`Found ${extraOverrides.length} extra overrides`);
+            extraOverrides.forEach(value => overrides.push(value));
+        }
         const finalResult = yield run_cmd_1.runCmd('helm', [
             'upgrade',
             helmReleaseName,
@@ -243,7 +249,7 @@ function deployPreview(options) {
             '--namespace',
             options.helmNamespace,
             '--set',
-            overrides
+            overrides.join(',')
         ]);
         const result = {
             previewUrl: completePreviewUrl,
@@ -625,7 +631,8 @@ function run() {
             helmKeyTlsSecretName: core.getInput('helm-key-tls-secret-name'),
             helmKeyClusterIssuer: core.getInput('helm-key-cluster-issuer'),
             clusterIssuer: core.getInput('cluster-issuer'),
-            TlsSecretName: core.getInput('tls-secret-name')
+            TlsSecretName: core.getInput('tls-secret-name'),
+            helmValues: core.getInput('helm-values')
         };
         try {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');

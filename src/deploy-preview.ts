@@ -127,7 +127,13 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     `${options.helmKeyContainerSuffix}=${githubRunNumber}`,
     `${options.helmKeyClusterIssuer}=${options.clusterIssuer}`,
     `${options.helmKeyTlsSecretName}=${options.TlsSecretName}`
-  ].join(',');
+  ];
+
+  if (options.helmValues && options.helmValues.length > 0) {
+    const extraOverrides = options.helmValues.split(',');
+    core.info(`Found ${extraOverrides.length} extra overrides`);
+    extraOverrides.forEach(value => overrides.push(value));
+  }
 
   const finalResult = await runCmd('helm', [
     'upgrade',
@@ -137,7 +143,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     '--namespace',
     options.helmNamespace,
     '--set',
-    overrides
+    overrides.join(',')
   ]);
 
   const result = {
