@@ -4,6 +4,7 @@ export type Command = 'deploy' | 'remove' | 'notify';
 
 export interface Options {
   TlsSecretName: string;
+  helmValues: string;
   clusterIssuer: string;
   helmKeyNamespace: string;
   helmRemovePreviewCharts: string;
@@ -106,7 +107,8 @@ const optionsDict: { [key in OptionKeys]: string } = {
   dockerFile: 'docker-file',
   hashSalt: 'hash-salt',
   helmKeyAppName: 'helm-key-app-name',
-  helmKeyPullSecret: 'helm-key-pullsecret'
+  helmKeyPullSecret: 'helm-key-pullsecret',
+  helmValues: 'helm-values'
 };
 
 export function validateOptions(
