@@ -42,7 +42,8 @@ const optionsDict = {
     hashSalt: 'hash-salt',
     helmKeyAppName: 'helm-key-app-name',
     helmKeyPullSecret: 'helm-key-pullsecret',
-    helmValues: 'helm-values'
+    helmValues: 'helm-values',
+    wait: 'wait'
 };
 function validateOptions(options, command, requiredOptions) {
     const errorMessages = [];
@@ -241,6 +242,10 @@ function deployPreview(options) {
             core.info(`Found ${extraOverrides.length} extra overrides`);
             extraOverrides.forEach(value => overrides.push(value));
         }
+        const extraCmds = [];
+        if (options.wait) {
+            extraCmds.push('--wait');
+        }
         const finalResult = yield run_cmd_1.runCmd('helm', [
             'upgrade',
             helmReleaseName,
@@ -248,6 +253,7 @@ function deployPreview(options) {
             '--install',
             '--namespace',
             options.helmNamespace,
+            ...extraCmds,
             '--set',
             overrides.join(',')
         ]);
@@ -632,7 +638,8 @@ function run() {
             helmKeyClusterIssuer: core.getInput('helm-key-cluster-issuer'),
             clusterIssuer: core.getInput('cluster-issuer'),
             TlsSecretName: core.getInput('tls-secret-name'),
-            helmValues: core.getInput('helm-values')
+            helmValues: core.getInput('helm-values'),
+            wait: core.getInput('wait')
         };
         try {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');

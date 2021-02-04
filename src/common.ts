@@ -3,6 +3,7 @@ export const PREVIEW_TAG_PREFIX = '-preview';
 export type Command = 'deploy' | 'remove' | 'notify';
 
 export interface Options {
+  wait: string;
   TlsSecretName: string;
   helmValues: string;
   clusterIssuer: string;
@@ -108,7 +109,8 @@ const optionsDict: { [key in OptionKeys]: string } = {
   hashSalt: 'hash-salt',
   helmKeyAppName: 'helm-key-app-name',
   helmKeyPullSecret: 'helm-key-pullsecret',
-  helmValues: 'helm-values'
+  helmValues: 'helm-values',
+  wait: 'wait'
 };
 
 export function validateOptions(

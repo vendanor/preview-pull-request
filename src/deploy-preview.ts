@@ -129,6 +129,10 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     core.info(`Found ${extraOverrides.length} extra overrides`);
     extraOverrides.forEach(value => overrides.push(value));
   }
+  const extraCmds = [];
+  if (options.wait) {
+    extraCmds.push('--wait');
+  }
 
   const finalResult = await runCmd('helm', [
     'upgrade',
@@ -137,6 +141,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     '--install',
     '--namespace',
     options.helmNamespace,
+    ...extraCmds,
     '--set',
     overrides.join(',')
   ]);
