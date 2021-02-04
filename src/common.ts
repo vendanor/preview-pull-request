@@ -4,7 +4,6 @@ export type Command = 'deploy' | 'remove' | 'notify';
 
 export interface Options {
   wait: string;
-  timeout: string;
   TlsSecretName: string;
   helmValues: string;
   clusterIssuer: string;
@@ -111,7 +110,6 @@ const optionsDict: { [key in OptionKeys]: string } = {
   helmKeyAppName: 'helm-key-app-name',
   helmKeyPullSecret: 'helm-key-pullsecret',
   helmValues: 'helm-values',
-  timeout: 'timeout',
   wait: 'wait'
 };
 

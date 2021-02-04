@@ -43,7 +43,6 @@ const optionsDict = {
     helmKeyAppName: 'helm-key-app-name',
     helmKeyPullSecret: 'helm-key-pullsecret',
     helmValues: 'helm-values',
-    timeout: 'timeout',
     wait: 'wait'
 };
 function validateOptions(options, command, requiredOptions) {
@@ -243,7 +242,7 @@ function deployPreview(options) {
             core.info(`Found ${extraOverrides.length} extra overrides`);
             extraOverrides.forEach(value => overrides.push(value));
         }
-        const extraCmds = [`--timeout ${options.timeout}`];
+        const extraCmds = [];
         if (options.wait) {
             extraCmds.push('--wait');
         }
@@ -640,8 +639,7 @@ function run() {
             clusterIssuer: core.getInput('cluster-issuer'),
             TlsSecretName: core.getInput('tls-secret-name'),
             helmValues: core.getInput('helm-values'),
-            wait: core.getInput('wait'),
-            timeout: core.getInput('timeout')
+            wait: core.getInput('wait')
         };
         try {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');

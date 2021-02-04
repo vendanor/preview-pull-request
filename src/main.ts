@@ -54,8 +54,7 @@ async function run(): Promise<void> {
     clusterIssuer: core.getInput('cluster-issuer'),
     TlsSecretName: core.getInput('tls-secret-name'),
     helmValues: core.getInput('helm-values'),
-    wait: core.getInput('wait'),
-    timeout: core.getInput('timeout')
+    wait: core.getInput('wait')
   };
 
   try {

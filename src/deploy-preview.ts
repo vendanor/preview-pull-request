@@ -129,7 +129,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     core.info(`Found ${extraOverrides.length} extra overrides`);
     extraOverrides.forEach(value => overrides.push(value));
   }
-  const extraCmds = [`--timeout ${options.timeout}`];
+  const extraCmds = [];
   if (options.wait) {
     extraCmds.push('--wait');
   }

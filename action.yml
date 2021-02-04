@@ -135,10 +135,6 @@ inputs:
     required: false
     default: "true"
     description: "Waits until deployment is successful, pods are running, etc. before marking the release as successful"
-  timeout:
-    required: false
-    default: "5m"
-    description: "Timeout waiting for kube commands to complete. Needs a unit.."
 
 outputs:
   previewUrl:
