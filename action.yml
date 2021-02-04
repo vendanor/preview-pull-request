@@ -137,7 +137,7 @@ inputs:
     description: "Waits until deployment is successful, pods are running, etc. before marking the release as successful"
   timeout:
     required: false
-    default: "60"
+    default: "300"
     description: "Timeout in seconds waiting for kube commands to complete"
 
 outputs:
