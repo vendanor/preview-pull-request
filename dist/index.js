@@ -243,9 +243,7 @@ function deployPreview(options) {
             core.info(`Found ${extraOverrides.length} extra overrides`);
             extraOverrides.forEach(value => overrides.push(value));
         }
-        const extraCmds = [
-            `--timeout ${options.timeout}`
-        ];
+        const extraCmds = [`--timeout ${options.timeout}`];
         if (options.wait) {
             extraCmds.push('--wait');
         }
