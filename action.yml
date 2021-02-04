@@ -128,6 +128,9 @@ inputs:
     required: true
     default: vn-preview-wild
     description: "Certificate secret name. Use a shared name for wildcard certs"
+  helm-values:
+    required: false
+    description: "Extra values to pass to helm upgrade --set. Example: key1=val1,key2=val2"
 
 outputs:
   previewUrl:
