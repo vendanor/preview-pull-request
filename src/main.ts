@@ -53,7 +53,9 @@ async function run(): Promise<void> {
     helmKeyClusterIssuer: core.getInput('helm-key-cluster-issuer'),
     clusterIssuer: core.getInput('cluster-issuer'),
     TlsSecretName: core.getInput('tls-secret-name'),
-    helmValues: core.getInput('helm-values')
+    helmValues: core.getInput('helm-values'),
+    wait: core.getInput('wait'),
+    timeout: core.getInput('timeout')
   };
 
   try {

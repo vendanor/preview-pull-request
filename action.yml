@@ -131,6 +131,14 @@ inputs:
   helm-values:
     required: false
     description: "Extra values to pass to helm upgrade --set. Example: key1=val1,key2=val2"
+  wait:
+    required: false
+    default: "true"
+    description: "Waits until deployment is successful, pods are running, etc. before marking the release as successful"
+  timeout:
+    required: false
+    default: "60"
+    description: "Timeout in seconds waiting for kube commands to complete"
 
 outputs:
   previewUrl:
