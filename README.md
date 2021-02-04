@@ -26,6 +26,13 @@ This makes it possible to also deploy a specific chart/version to production, as
 By default, preview charts are deleted from chart repository when PR is closed.
 Set `helm-remove-preview-charts=false` if you want to keep them.
 
+## Prerequisite
+This action is (currently) tightly coupled to the following set of tools. 
+- Kubernetes
+- ghcr.io as container registry (could work with others, but not tested)
+- Docker containers
+- Helm charts
+
 ## Usage
 1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, 
    `pullsecret`, `url`, `cluster-issuer`, `tls-secret-name` is defined
