@@ -144,7 +144,7 @@ outputs:
   helmReleaseName:
     description: "Helm chart release version including tags (semver)"
   success:
-    description: "was everthing successful or not"
+    description: "was everthing successful or not."
 
 runs:
   using: 'node12'
