@@ -148,10 +148,10 @@ function deployPreview(options) {
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
         const context = yield github_util_1.getCurrentContext();
         const githubRunNumber = context.runNumber;
-        const tagPostfix = `${common_1.PREVIEW_TAG_PREFIX}.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
+        const tagPostfix = `${common_1.PREVIEW_TAG_PREFIX}.${pullRequestId}.${githubRunNumber}`;
         // Build docker image
         const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
-        const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+        const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.0${tagPostfix}`;
         core.info('Building docker image: ' + dockerImageVersion);
         const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
         const dockerBuildResult = yield run_cmd_1.runCmd('docker', [

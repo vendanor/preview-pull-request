@@ -24,11 +24,11 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
   const context = await getCurrentContext();
   const githubRunNumber = context.runNumber;
-  const tagPostfix = `${PREVIEW_TAG_PREFIX}.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
+  const tagPostfix = `${PREVIEW_TAG_PREFIX}.${pullRequestId}.${githubRunNumber}`;
 
   // Build docker image
   const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
-  const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+  const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.0${tagPostfix}`;
   core.info('Building docker image: ' + dockerImageVersion);
   const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
   const dockerBuildResult = await runCmd('docker', [
