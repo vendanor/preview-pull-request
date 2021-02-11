@@ -165,7 +165,7 @@ function deployPreview(options) {
         core.info('Build docker image result code:' + dockerBuildResult.resultCode);
         core.info(dockerBuildResult.output);
         core.info('Push docker image...');
-        const dockerPushResult = yield run_cmd_1.runCmd('docker', ['push', dockerImageName]);
+        const dockerPushResult = yield run_cmd_1.runCmd('docker', ['push', dockerImageVersion]);
         core.info('Push docker image result: ' + dockerPushResult.resultCode);
         // Pack Helm chart
         const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
