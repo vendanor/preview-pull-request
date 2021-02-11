@@ -42,7 +42,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Build docker image result code:' + dockerBuildResult.resultCode);
   core.info(dockerBuildResult.output);
   core.info('Push docker image...');
-  const dockerPushResult = await runCmd('docker', ['push', dockerImageName]);
+  const dockerPushResult = await runCmd('docker', ['push', dockerImageVersion]);
   core.info('Push docker image result: ' + dockerPushResult.resultCode);
 
   // Pack Helm chart
