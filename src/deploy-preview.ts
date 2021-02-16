@@ -46,13 +46,13 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Push docker image result: ' + dockerPushResult.resultCode);
 
   // Pack Helm chart
-  const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
+  const chartVersion = `${options.helmTagMajor}.0${tagPostfix}`;
   const chartFilenameWithoutFolder = options.helmChartFilePath.replace(
     /^.*[\\\/]/,
     ''
   );
-  const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
-  const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+  const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.0${tagPostfix}.tgz`;
+  const appVersionClean = `${options.dockerTagMajor}.0${tagPostfix}`;
 
   core.info('Installing helm-pack plugin...');
   const pluginResult = await exec.exec('helm', [
