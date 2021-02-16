@@ -168,10 +168,10 @@ function deployPreview(options) {
         const dockerPushResult = yield run_cmd_1.runCmd('docker', ['push', dockerImageVersion]);
         core.info('Push docker image result: ' + dockerPushResult.resultCode);
         // Pack Helm chart
-        const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
+        const chartVersion = `${options.helmTagMajor}.0${tagPostfix}`;
         const chartFilenameWithoutFolder = options.helmChartFilePath.replace(/^.*[\\\/]/, '');
-        const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
-        const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+        const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.0${tagPostfix}.tgz`;
+        const appVersionClean = `${options.dockerTagMajor}.0${tagPostfix}`;
         core.info('Installing helm-pack plugin...');
         const pluginResult = yield exec.exec('helm', [
             'plugin',
