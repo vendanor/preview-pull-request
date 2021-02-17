@@ -970,8 +970,6 @@ Please re-open PR and commit one change if you want to generate a new preview.
   `,
             brewing: `
 ![vn](${img} "vn")
-Your preview is available here:
-<https://${completePreviewUrl}>
 
 👷 A new version (${sha7}) is currently building..
     `
