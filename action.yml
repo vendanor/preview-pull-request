@@ -47,7 +47,7 @@ inputs:
 
   helm-namespace:
     required: false
-    default: "vn-preview"
+    default: "preview"
     description: "Helm namespace where Helm releases are published. Also used as k8s namespace!"
   helm-repo-url:
     required: false
