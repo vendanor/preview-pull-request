@@ -9,7 +9,12 @@ import {
 } from './github-util';
 import { Options } from './common';
 
-type MessageType = 'success' | 'fail' | 'removed' | 'brewing';
+export type MessageType =
+  | 'success'
+  | 'fail'
+  | 'removed'
+  | 'brewing'
+  | 'cancelled';
 
 export async function postOrUpdateGithubComment(
   type: MessageType,
@@ -43,6 +48,11 @@ Please re-open PR and commit one change if you want to generate a new preview.
 ![vn](${img} "vn")
 
 👷 A new version (${sha7}) is currently building..
+    `,
+    cancelled: `
+![vn](${img} "vn")
+🚨🚨 Preview :: Last job cancelled 🚨🚨
+Your preview (${sha7}) is (not yet) available.    
     `
   };
   const body = messages[type];

@@ -1,8 +1,8 @@
 {
-  "name": "typescript-action",
+  "name": "preview-pull-request",
   "version": "0.0.0",
   "private": true,
-  "description": "TypeScript template action",
+  "description": "Preview pull requests in Kubernetes",
   "main": "lib/main.js",
   "scripts": {
     "build": "tsc",
@@ -21,7 +21,7 @@
     "node",
     "setup"
   ],
-  "author": "",
+  "author": "Vendanor",
   "license": "MIT",
   "dependencies": {
     "@actions/core": "^1.2.7",
@@ -38,10 +38,8 @@
     "@vercel/ncc": "^0.28.5",
     "eslint": "^7.26.0",
     "eslint-plugin-github": "^4.1.3",
-    "eslint-plugin-jest": "^24.3.6",
     "js-yaml": "^4.1.0",
     "prettier": "2.3.0",
-    "src": "^1.1.2",
     "typescript": "^4.2.4"
   }
 }
