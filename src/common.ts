@@ -109,7 +109,7 @@ const optionsDict: { [key in OptionKeys]: string } = {
   dockerFile: 'docker-file',
   hashSalt: 'hash-salt',
   helmKeyAppName: 'helm-key-app-name',
-  dockerRemovePreviewImages: 'docker-remove-preview-images'
+  dockerRemovePreviewImages: 'docker-remove-preview-images',
   helmKeyPullSecret: 'helm-key-pullsecret',
   helmValues: 'helm-values',
   wait: 'wait'

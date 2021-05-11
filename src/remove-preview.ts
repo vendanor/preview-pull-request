@@ -8,12 +8,8 @@ import { removePreviewDockerImages } from './remove-preview-docker-images';
 export const removePreviewsForCurrentPullRequest = async (
   options: Options
 ): Promise<CommandResult> => {
-  const {
-    appName,
-    githubToken,
-    helmNamespace,
-    helmRemovePreviewCharts
-  } = options;
+  const { appName, githubToken, helmNamespace, helmRemovePreviewCharts } =
+    options;
 
   const pullRequestId = await getCurrentPullRequestId(githubToken);
   const shouldRemoveCharts: boolean =
