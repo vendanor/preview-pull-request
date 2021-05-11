@@ -54,6 +54,8 @@ async function run(): Promise<void> {
     clusterIssuer: core.getInput('cluster-issuer'),
     TlsSecretName: core.getInput('tls-secret-name'),
     dockerRemovePreviewImages: core.getInput('docker-remove-preview-images')
+    helmValues: core.getInput('helm-values'),
+    wait: core.getInput('wait')
   };
 
   try {

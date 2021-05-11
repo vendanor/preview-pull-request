@@ -1,11 +1,6 @@
 import * as core from '@actions/core';
 import * as exec from '@actions/exec';
-import {
-  CommandResult,
-  Options,
-  PREVIEW_TAG_PREFIX,
-  validateOptions
-} from './common';
+import { CommandResult, Options, PREVIEW_TAG_PREFIX } from './common';
 import {
   getCurrentContext,
   getCurrentPullRequestId,
@@ -29,11 +24,11 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
   const context = await getCurrentContext();
   const githubRunNumber = context.runNumber;
-  const tagPostfix = `${PREVIEW_TAG_PREFIX}.${pullRequestId}.${sha7}`; // used for both docker tag and helm tag
+  const tagPostfix = `${PREVIEW_TAG_PREFIX}.${pullRequestId}.${githubRunNumber}`;
 
   // Build docker image
   const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
-  const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+  const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.0${tagPostfix}`;
   core.info('Building docker image: ' + dockerImageVersion);
   const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
   const dockerBuildResult = await runCmd('docker', [
@@ -47,17 +42,17 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Build docker image result code:' + dockerBuildResult.resultCode);
   core.info(dockerBuildResult.output);
   core.info('Push docker image...');
-  const dockerPushResult = await runCmd('docker', ['push', dockerImageName]);
+  const dockerPushResult = await runCmd('docker', ['push', dockerImageVersion]);
   core.info('Push docker image result: ' + dockerPushResult.resultCode);
 
   // Pack Helm chart
-  const chartVersion = `${options.helmTagMajor}.${githubRunNumber}${tagPostfix}`;
+  const chartVersion = `${options.helmTagMajor}.0${tagPostfix}`;
   const chartFilenameWithoutFolder = options.helmChartFilePath.replace(
     /^.*[\\\/]/,
     ''
   );
-  const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.${githubRunNumber}${tagPostfix}.tgz`;
-  const appVersionClean = `${options.dockerTagMajor}.${githubRunNumber}${tagPostfix}`;
+  const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.0${tagPostfix}.tgz`;
+  const appVersionClean = `${options.dockerTagMajor}.0${tagPostfix}`;
 
   core.info('Installing helm-pack plugin...');
   const pluginResult = await exec.exec('helm', [
@@ -127,7 +122,17 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     `${options.helmKeyContainerSuffix}=${githubRunNumber}`,
     `${options.helmKeyClusterIssuer}=${options.clusterIssuer}`,
     `${options.helmKeyTlsSecretName}=${options.TlsSecretName}`
-  ].join(',');
+  ];
+
+  if (options.helmValues && options.helmValues.length > 0) {
+    const extraOverrides = options.helmValues.split(',');
+    core.info(`Found ${extraOverrides.length} extra overrides`);
+    extraOverrides.forEach(value => overrides.push(value));
+  }
+  const extraCmds = [];
+  if (options.wait) {
+    extraCmds.push('--wait');
+  }
 
   const finalResult = await runCmd('helm', [
     'upgrade',
@@ -136,8 +141,9 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     '--install',
     '--namespace',
     options.helmNamespace,
+    ...extraCmds,
     '--set',
-    overrides
+    overrides.join(',')
   ]);
 
   const result = {

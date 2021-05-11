@@ -1,5 +1,5 @@
 # preview-pull-request
-
+      
 ## Description
 A Github Action to deploy previews of Pull Requests to AKS - Azure Kubernetes Service using Helm charts 🚀
 
@@ -25,6 +25,13 @@ If you specify `helm-repo-url` when deploying, charts are also published to give
 This makes it possible to also deploy a specific chart/version to production, as a release candidate etc.
 By default, preview charts are deleted from chart repository when PR is closed.
 Set `helm-remove-preview-charts=false` if you want to keep them.
+
+## Prerequisite
+This action is (currently) tightly coupled to the following set of tools. 
+- Kubernetes
+- ghcr.io as container registry (could work with others, but not tested)
+- Docker containers
+- Helm charts
 
 ## Usage
 1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, 
@@ -248,3 +255,5 @@ spec:
     organizations:
       - company
 ```
+
+.

@@ -3,7 +3,9 @@ export const PREVIEW_TAG_PREFIX = '-preview';
 export type Command = 'deploy' | 'remove' | 'notify';
 
 export interface Options {
+  wait: string;
   TlsSecretName: string;
+  helmValues: string;
   clusterIssuer: string;
   helmKeyNamespace: string;
   helmRemovePreviewCharts: string;
@@ -107,8 +109,10 @@ const optionsDict: { [key in OptionKeys]: string } = {
   dockerFile: 'docker-file',
   hashSalt: 'hash-salt',
   helmKeyAppName: 'helm-key-app-name',
-  helmKeyPullSecret: 'helm-key-pullsecret',
   dockerRemovePreviewImages: 'docker-remove-preview-images'
+  helmKeyPullSecret: 'helm-key-pullsecret',
+  helmValues: 'helm-values',
+  wait: 'wait'
 };
 
 export function validateOptions(
