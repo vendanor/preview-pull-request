@@ -256,4 +256,61 @@ spec:
       - company
 ```
 
-.
+## Add build status message to sticky comment in PR
+
+If you want a message in PR with build status use the following commands:
+`notify-start`, `notify-cancelled`, `notify-failed`
+
+```yaml
+steps:
+  - name: Notify preview build started
+    uses: vendanor/preview-pull-request@v2.5-beta2
+    with:
+      command: notify-start
+      app-name: ${{ env.PREVIEW_APPNAME }}
+      base-url: ${{ env.PREVIEW_BASEURL }}
+      hash-salt: ${{ env.PREVIEW_HASH_SECRET }}
+      token: ${{ secrets.GITHUB_TOKEN }}          
+
+  - name: Checkout
+    uses: actions/checkout@v2
+
+  - name: Build
+    run: |
+      build something
+
+  - name: Set K8S context
+    id: setcontext
+    uses: azure/k8s-set-context@v1
+    with:
+      method: kubeconfig
+      kubeconfig: ${{ env.KUBECONFIG_STAGING }}
+
+  - name: Deploy preview
+    id: deploy_preview_step
+    uses: vendanor/preview-pull-request@v2.5
+    with:
+      command: deploy
+      app-name: ${{ env.PREVIEW_APPNAME }}
+      base-url: ${{ env.PREVIEW_BASEURL }}
+
+  - name: Notify preview build cancelled
+    uses: vendanor/preview-pull-request@v2.5
+    if: cancelled()
+    with:
+      command: notify-cancelled
+      app-name: ${{ env.PREVIEW_APPNAME }}
+      base-url: ${{ env.PREVIEW_BASEURL }}
+      hash-salt: ${{ env.PREVIEW_HASH_SECRET }}
+      token: ${{ secrets.GITHUB_TOKEN }}
+
+  - name: Notify preview build cancelled
+    uses: vendanor/preview-pull-request@v2.5
+    if: failure()
+    with:
+      command: notify-failed
+      app-name: ${{ env.PREVIEW_APPNAME }}
+      base-url: ${{ env.PREVIEW_BASEURL }}
+      hash-salt: ${{ env.PREVIEW_HASH_SECRET }}
+      token: ${{ secrets.GITHUB_TOKEN }}
+```
