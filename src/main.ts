@@ -3,7 +3,7 @@ import { CommandResult, Options, validateOptions } from './common';
 import { removePreviewsForCurrentPullRequest } from './remove-preview';
 import { deployPreview } from './deploy-preview';
 import { dilbert } from './dilbert';
-import { postOrUpdateGithubComment } from './sticky-comment';
+import { MessageType, postOrUpdateGithubComment } from './sticky-comment';
 import { getCurrentPullRequestId } from './github-util';
 import { generateHash } from './crypto-util';
 
@@ -76,7 +76,7 @@ async function run(): Promise<void> {
       const result = await deployPreview(options);
       setOutputFromResult(result);
       await postOrUpdateGithubComment('success', options, result.previewUrl);
-    } else if (options.cmd === 'notify') {
+    } else if (options.cmd.startsWith('notify')) {
       validateOptions(options, 'notify', [
         'githubToken',
         'hashSalt',
@@ -87,7 +87,17 @@ async function run(): Promise<void> {
       const hash = generateHash(pullRequestId, options.hashSalt);
       const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
       const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
-      await postOrUpdateGithubComment('brewing', options, completePreviewUrl);
+
+      let mytype: MessageType = 'brewing';
+      if (options.cmd === 'notify-start') {
+        mytype = 'brewing';
+      } else if (options.cmd === 'notify-cancelled') {
+        mytype = 'cancelled';
+      } else if (options.cmd === 'notify-failed') {
+        mytype = 'fail';
+      }
+
+      await postOrUpdateGithubComment(mytype, options, completePreviewUrl);
       setOutputFromResult({
         success: true
       });
