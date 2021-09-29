@@ -199,7 +199,7 @@ function deployPreview(options) {
             yield exec.exec('helm', [
                 'repo',
                 'add',
-                'vendanor',
+                options.helmOrganization,
                 options.helmRepoUrl,
                 '--username',
                 options.helmRepoUsername,
@@ -210,11 +210,7 @@ function deployPreview(options) {
             yield exec.exec('helm', [
                 'push',
                 chartFilenameToPush,
-                options.helmOrganization,
-                '--username',
-                options.helmRepoUsername,
-                '--password',
-                options.helmRepoPassword
+                options.helmOrganization
             ]);
         }
         else {
