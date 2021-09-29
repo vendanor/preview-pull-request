@@ -207,6 +207,7 @@ function deployPreview(options) {
                 options.helmRepoPassword
             ]);
             yield exec.exec('helm', ['repo', 'update']);
+            yield exec.exec('export', ['HELM_EXPERIMENTAL_OCI=1']);
             yield exec.exec('helm', [
                 'push',
                 chartFilenameToPush,
