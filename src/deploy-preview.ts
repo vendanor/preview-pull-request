@@ -85,7 +85,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     await exec.exec('helm', [
       'repo',
       'add',
-      'vendanor',
+      options.helmOrganization,
       options.helmRepoUrl,
       '--username',
       options.helmRepoUsername,
@@ -96,11 +96,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     await exec.exec('helm', [
       'push',
       chartFilenameToPush,
-      options.helmOrganization,
-      '--username',
-      options.helmRepoUsername,
-      '--password',
-      options.helmRepoPassword
+      options.helmOrganization
     ]);
   } else {
     core.info('helm-repo-url was not set, skipping publish helm chart');
