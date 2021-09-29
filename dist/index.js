@@ -210,7 +210,7 @@ function deployPreview(options) {
             yield exec.exec('helm', [
                 'push',
                 chartFilenameToPush,
-                options.helmOrganization
+                options.helmRepoUrl
             ]);
         }
         else {

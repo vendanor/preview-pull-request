@@ -93,11 +93,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
       options.helmRepoPassword
     ]);
     await exec.exec('helm', ['repo', 'update']);
-    await exec.exec('helm', [
-      'push',
-      chartFilenameToPush,
-      options.helmOrganization
-    ]);
+    await exec.exec('helm', ['push', chartFilenameToPush, options.helmRepoUrl]);
   } else {
     core.info('helm-repo-url was not set, skipping publish helm chart');
   }
