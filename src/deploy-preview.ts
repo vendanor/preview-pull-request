@@ -93,7 +93,6 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
       options.helmRepoPassword
     ]);
     await exec.exec('helm', ['repo', 'update']);
-    await exec.exec('export', ['HELM_EXPERIMENTAL_OCI=1']);
     await exec.exec('helm', [
       'push',
       chartFilenameToPush,
