@@ -180,7 +180,7 @@ function deployPreview(options) {
         // https://github.com/chartmuseum/helm-push/issues/103#issuecomment-933297249
         // Cant move to v3.7 yet because of bug..
         core.info('Installing helm 3.6.3...');
-        const version = '3.6.3';
+        const version = 'v3.6.3';
         let cachedPath = yield helm_util_1.downloadHelm(version);
         try {
             if (!((_a = process.env['PATH']) === null || _a === void 0 ? void 0 : _a.startsWith(path_1.default.dirname(cachedPath)))) {

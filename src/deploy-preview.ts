@@ -60,7 +60,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   // Cant move to v3.7 yet because of bug..
   core.info('Installing helm 3.6.3...');
 
-  const version = '3.6.3';
+  const version = 'v3.6.3';
   let cachedPath = await downloadHelm(version);
   try {
     if (!process.env['PATH']?.startsWith(path.dirname(cachedPath))) {
