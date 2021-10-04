@@ -57,11 +57,13 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   // https://github.com/chartmuseum/helm-push/issues/103#issuecomment-933297249
   // Cant move to v3.7 yet because of bug..
   core.info('Installing helm 3.6.3...');
-  await exec.exec(
-    'curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3  > get_helm.sh'
-  );
-  await exec.exec('chmod 700 get_helm.sh');
-  await exec.exec('./get_helm.sh --version v3.6.3');
+  await exec.exec('curl', [
+    'https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3',
+    '>',
+    'get_helm.sh'
+  ]);
+  await exec.exec('chmod', ['700', 'get_helm.sh']);
+  await exec.exec('./get_helm.sh', ['--version', 'v3.6.3']);
   await exec.exec('helm', ['version']);
 
   core.info('Installing helm-pack plugin...');
