@@ -28,12 +28,15 @@
     "@actions/exec": "^1.0.4",
     "@actions/github": "^4.0.0",
     "@actions/io": "^1.1.0",
+    "@actions/tool-cache": "^1.7.1",
     "@types/crypto-js": "^4.0.1",
     "axios": "^0.21.1",
-    "crypto-js": "^4.0.0"
+    "crypto-js": "^4.0.0",
+    "semver": "^7.3.5"
   },
   "devDependencies": {
     "@types/node": "^15.0.2",
+    "@types/semver": "^7.3.8",
     "@typescript-eslint/parser": "^4.23.0",
     "@vercel/ncc": "^0.28.5",
     "eslint": "^7.26.0",

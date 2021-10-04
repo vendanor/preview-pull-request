@@ -9,6 +9,8 @@ import {
 import { runCmd } from './run-cmd';
 import { loginContainerRegistry } from './docker-util';
 import { generateHash } from './crypto-util';
+import { downloadHelm } from './helm-util';
+import path from 'path';
 
 export async function deployPreview(options: Options): Promise<CommandResult> {
   core.info('Starting deploy preview...');
@@ -53,6 +55,24 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   );
   const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.0${tagPostfix}.tgz`;
   const appVersionClean = `${options.dockerTagMajor}.0${tagPostfix}`;
+
+  // https://github.com/chartmuseum/helm-push/issues/103#issuecomment-933297249
+  // Cant move to v3.7 yet because of bug..
+  core.info('Installing helm 3.6.3...');
+
+  const version = 'v3.6.3';
+  let cachedPath = await downloadHelm(version);
+  try {
+    if (!process.env['PATH']?.startsWith(path.dirname(cachedPath))) {
+      core.addPath(path.dirname(cachedPath));
+    }
+  } catch {
+    //do nothing, set as output variable
+  }
+
+  console.log(
+    `Helm tool version: '${version}' has been cached at ${cachedPath}`
+  );
 
   core.info('Installing helm-pack plugin...');
   const pluginResult = await exec.exec('helm', [
