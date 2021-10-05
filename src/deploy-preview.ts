@@ -102,6 +102,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
       'install',
       'https://github.com/chartmuseum/helm-push.git'
     ]);
+
     await exec.exec('helm', [
       'repo',
       'add',
@@ -114,7 +115,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     ]);
     await exec.exec('helm', ['repo', 'update']);
     await exec.exec('helm', [
-      'push',
+      'cm-push',
       chartFilenameToPush,
       options.helmOrganization,
       '--username',
