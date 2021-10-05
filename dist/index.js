@@ -228,7 +228,7 @@ function deployPreview(options) {
             ]);
             yield exec.exec('helm', ['repo', 'update']);
             yield exec.exec('helm', [
-                'push',
+                'cm-push',
                 chartFilenameToPush,
                 options.helmOrganization,
                 '--username',
