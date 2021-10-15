@@ -28,7 +28,7 @@ export async function postOrUpdateGithubComment(
 
   core.info('Posting message to github PR: ' + type);
   const img =
-    'https://github.com/vendanor/preview-pull-request/blob/main/logo2.png?raw=true';
+    'https://github.com/vendanor/preview-pull-request/blob/main/logo.png?raw=true';
   const messages: { [key in MessageType]: string } = {
     fail: `
 ![vn](${img} "vn")
