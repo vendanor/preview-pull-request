@@ -1218,7 +1218,7 @@ function postOrUpdateGithubComment(type, options, completePreviewUrl) {
         const sha7 = yield github_util_1.getLatestCommitShortSha(options.githubToken);
         const pullRequestId = yield github_util_1.getCurrentPullRequestId(options.githubToken);
         core.info('Posting message to github PR: ' + type);
-        const img = 'http://files.vendanor.com/images/vn-preview-495kfd53sl4.png';
+        const img = 'https://github.com/vendanor/preview-pull-request/blob/main/logo2.png?raw=true';
         const messages = {
             fail: `
 ![vn](${img} "vn")
