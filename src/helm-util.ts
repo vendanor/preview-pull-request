@@ -166,7 +166,7 @@ async function getLatestHelmVersionFor(type: string): Promise<string> {
       isValidVersion(release.tagName, type)
     );
     if (latestValidRelease) return latestValidRelease.tagName;
-  } catch (err) {
+  } catch (err: any) {
     core.warning(
       util.format(
         'Error while fetching the latest Helm %s release. Error: %s. Using default Helm version %s.',

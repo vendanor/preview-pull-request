@@ -19,7 +19,7 @@ export async function findPreviousComment(
     auth: token
   });
 
-  const { data: comments } = await octokit.issues.listComments({
+  const { data: comments } = await octokit.rest.issues.listComments({
     ...repo,
     issue_number
   });
@@ -42,7 +42,7 @@ export async function updateComment(
   if (!body && !previousBody)
     return core.warning('Comment body cannot be blank');
 
-  await octokit.issues.updateComment({
+  await octokit.rest.issues.updateComment({
     ...repo,
     comment_id,
     body: previousBody
@@ -65,7 +65,7 @@ export async function createComment(
   if (!body && !previousBody)
     return core.warning('Comment body cannot be blank');
 
-  await octokit.issues.createComment({
+  await octokit.rest.issues.createComment({
     ...repo,
     issue_number,
     body: previousBody
@@ -82,7 +82,7 @@ export async function deleteComment(
     auth: token
   });
 
-  await octokit.issues.deleteComment({
+  await octokit.rest.issues.deleteComment({
     ...repo,
     comment_id
   });
@@ -100,7 +100,7 @@ export const getBase = async (
     auth: token
   });
 
-  const pr = await client.pulls.get({
+  const pr = await client.rest.pulls.get({
     repo: context.repo.repo,
     owner: context.repo.owner,
     pull_number: prId
@@ -123,11 +123,13 @@ export const getCurrentPullRequestId = async (
   // In the context of github PUSH, we don't have access to PR info in context
   // NOTE: this part is not tested..
   if (context.eventName === 'push' && !!context.sha) {
-    const result = await client.repos.listPullRequestsAssociatedWithCommit({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      commit_sha: context.sha
-    });
+    const result = await client.rest.repos.listPullRequestsAssociatedWithCommit(
+      {
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        commit_sha: context.sha
+      }
+    );
 
     return result.data[0].number;
   } else if (context.eventName === 'pull_request') {
@@ -161,7 +163,7 @@ export const getLatestCommitShortSha = async (token: string) => {
   let lastCommit;
 
   while (true) {
-    const result = await client.pulls.listCommits({
+    const result = await client.rest.pulls.listCommits({
       owner: context.repo.owner,
       repo: context.repo.repo,
       pull_number: prId,

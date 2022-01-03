@@ -114,7 +114,7 @@ async function run(): Promise<void> {
       throw new Error(`Command ${options.cmd} not supported`);
     }
     core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
-  } catch (error) {
+  } catch (error: any) {
     await postOrUpdateGithubComment('fail', options);
     setOutputFromResult({
       success: false
