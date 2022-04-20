@@ -88,16 +88,16 @@ async function run(): Promise<void> {
       const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
       const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
 
-      let mytype: MessageType = 'brewing';
-      if (options.cmd === 'notify-start') {
-        mytype = 'brewing';
-      } else if (options.cmd === 'notify-cancelled') {
-        mytype = 'cancelled';
-      } else if (options.cmd === 'notify-failed') {
-        mytype = 'fail';
-      }
+      let messageType: MessageType = 'welcome';
+      // if (options.cmd === 'notify-start') {
+      //   messageType = 'brewing';
+      // } else if (options.cmd === 'notify-cancelled') {
+      //   messageType = 'cancelled';
+      // } else if (options.cmd === 'notify-failed') {
+      //   messageType = 'fail';
+      // }
 
-      await postOrUpdateGithubComment(mytype, options, completePreviewUrl);
+      await postOrUpdateGithubComment(messageType, options, completePreviewUrl);
       setOutputFromResult({
         success: true
       });
