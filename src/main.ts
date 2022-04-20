@@ -89,9 +89,12 @@ async function run(): Promise<void> {
       const commentAction = parseComment();
       if (commentAction === 'add') {
         await addCommentReaction(options.githubToken, 'rocket');
+        await postOrUpdateGithubComment('brewing', options);
         const result = await deployPreview(options);
         setOutputFromResult(result);
         await postOrUpdateGithubComment('success', options, result.previewUrl);
+
+        // TODO: catch => failed?? how does cancel etc. work??
       } else if (commentAction === 'remove') {
         await addCommentReaction(options.githubToken, '+1');
         const result = await removePreviewsForCurrentPullRequest(options);

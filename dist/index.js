@@ -555,6 +555,12 @@ const getCurrentPullRequestId = (token) => __awaiter(void 0, void 0, void 0, fun
         }
         return utils_1.context.payload.pull_request.number;
     }
+    else if (utils_1.context.eventName === 'issue_comment') {
+        if (utils_1.context.payload.issue === undefined) {
+            throw new Error('Could not find pull request id from issue_comment context');
+        }
+        return utils_1.context.payload.issue.number;
+    }
     else {
         throw new Error('Can only run on commit or pull_request');
     }
@@ -983,9 +989,11 @@ function run() {
                 const commentAction = (0, parseComment_1.parseComment)();
                 if (commentAction === 'add') {
                     yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
                     const result = yield (0, deploy_preview_1.deployPreview)(options);
                     setOutputFromResult(result);
                     yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
+                    // TODO: catch => failed?? how does cancel etc. work??
                 }
                 else if (commentAction === 'remove') {
                     yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');

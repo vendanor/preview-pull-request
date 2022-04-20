@@ -161,6 +161,13 @@ export const getCurrentPullRequestId = async (
       throw new Error('Could not find pull request id from context');
     }
     return context.payload.pull_request.number;
+  } else if (context.eventName === 'issue_comment') {
+    if (context.payload.issue === undefined) {
+      throw new Error(
+        'Could not find pull request id from issue_comment context'
+      );
+    }
+    return context.payload.issue.number;
   } else {
     throw new Error('Can only run on commit or pull_request');
   }
