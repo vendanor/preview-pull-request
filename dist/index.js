@@ -1069,7 +1069,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
-const commentPrefix = '@preview';
+const commentPrefix = 'preview';
 const parseComment = () => {
     const comment = utils_1.context.payload.comment.body;
     if (!comment.startsWith(commentPrefix)) {
@@ -1337,8 +1337,8 @@ const github_util_1 = __nccwpck_require__(2762);
 const commands = `
 
 You can trigger preview-pull-request by commenting on this PR:  
-- \`@preview add\` will deploy a preview 
-- \`@preview remove\` will remove a preview
+- \`preview add\` will deploy a preview 
+- \`preview remove\` will remove a preview
 
 Previews will be removed when you close the PR
  
