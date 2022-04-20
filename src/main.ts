@@ -78,6 +78,8 @@ async function run(): Promise<void> {
     core.info('actor' + context.actor);
     core.info('workflow' + context.workflow);
     core.info('isBot' + isBot);
+    const temp = JSON.stringify(context, null, 2);
+    core.info(temp);
 
     validateOptions(options);
 
