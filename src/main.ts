@@ -104,9 +104,9 @@ async function run(): Promise<void> {
         setOutputFromResult(result);
         await postOrUpdateGithubComment('removed', options);
       } else if (
-        context.action === 'opened' ||
-        context.action === 'reopened' ||
-        context.action === 'synchronize'
+        context.payload.action === 'opened' ||
+        context.payload.action === 'reopened' ||
+        context.payload.action === 'synchronize'
       ) {
         await postOrUpdateGithubComment('welcome', options);
       } else {
