@@ -111,42 +111,40 @@ async function run(): Promise<void> {
         options.githubToken
       );
       core.info('isPreviewEnabled: ' + isPreviewEnabled);
-      if (isPreviewEnabled) {
-        if (context.action === 'closed') {
-          // TODO: add comment "Closing"?
-          core.info('closed...');
-          const result = await removePreviewsForCurrentPullRequest(options);
-          setOutputFromResult(result);
-          await postOrUpdateGithubComment('removed', options);
-        } else if (
-          context.payload.action === 'opened' ||
-          context.payload.action === 'reopened'
-        ) {
-          core.info('opened or reopened, show welcome...');
+
+      if (context.action === 'closed' && isPreviewEnabled) {
+        // TODO: add NEW comment "Closing"?
+        core.info('closed...');
+        const result = await removePreviewsForCurrentPullRequest(options);
+        setOutputFromResult(result);
+        await postOrUpdateGithubComment('removed', options);
+      } else if (
+        context.payload.action === 'opened' ||
+        context.payload.action === 'reopened'
+      ) {
+        core.info('opened or reopened, show welcome...');
+        if (isPreviewEnabled) {
+          // TODO: if we close and reopen, welcome message will show...
           await postOrUpdateGithubComment('welcome', options);
-        } else if (context.payload.action === 'synchronize') {
-          core.info('sync (preview enabled)...');
-          // TODO: comment in progress?
-          try {
-            await postOrUpdateGithubComment('brewing', options);
-            const result = await deployPreview(options);
-            setOutputFromResult(result);
-            await postOrUpdateGithubComment(
-              'success',
-              options,
-              result.previewUrl
-            );
-          } catch (err) {
-            core.info('failed here test?');
-            await postOrUpdateGithubComment('fail', options);
-            setFailed('Failed to deploy new preview');
-          }
         } else {
-          core.info('unknown pr action: ' + context.payload.action);
+          await postOrUpdateGithubComment('welcome', options);
         }
-      } else {
-        core.info('Preview is not enabled, ignoring...');
       }
+    } else if (context.payload.action === 'synchronize') {
+      core.info('sync (preview enabled)...');
+      // TODO: comment in progress?
+      try {
+        await postOrUpdateGithubComment('brewing', options);
+        const result = await deployPreview(options);
+        setOutputFromResult(result);
+        await postOrUpdateGithubComment('success', options, result.previewUrl);
+      } catch (err) {
+        core.info('failed here test?');
+        await postOrUpdateGithubComment('fail', options);
+        setFailed('Failed to deploy new preview');
+      }
+    } else {
+      core.info('unknown pr action: ' + context.payload.action);
 
       //
     }
