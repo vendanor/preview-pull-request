@@ -1004,41 +1004,42 @@ function run() {
                 // base branch is changed.
                 const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
                 core.info('isPreviewEnabled: ' + isPreviewEnabled);
-                if (isPreviewEnabled) {
-                    if (utils_1.context.action === 'closed') {
-                        // TODO: add comment "Closing"?
-                        core.info('closed...');
-                        const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
-                        setOutputFromResult(result);
-                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
-                    }
-                    else if (utils_1.context.payload.action === 'opened' ||
-                        utils_1.context.payload.action === 'reopened') {
-                        core.info('opened or reopened, show welcome...');
+                if (utils_1.context.action === 'closed' && isPreviewEnabled) {
+                    // TODO: add NEW comment "Closing"?
+                    core.info('closed...');
+                    const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
+                    setOutputFromResult(result);
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
+                }
+                else if (utils_1.context.payload.action === 'opened' ||
+                    utils_1.context.payload.action === 'reopened') {
+                    core.info('opened or reopened, show welcome...');
+                    if (isPreviewEnabled) {
+                        // TODO: if we close and reopen, welcome message will show...
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
                     }
-                    else if (utils_1.context.payload.action === 'synchronize') {
-                        core.info('sync (preview enabled)...');
-                        // TODO: comment in progress?
-                        try {
-                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
-                            const result = yield (0, deploy_preview_1.deployPreview)(options);
-                            setOutputFromResult(result);
-                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
-                        }
-                        catch (err) {
-                            core.info('failed here test?');
-                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options);
-                            (0, core_1.setFailed)('Failed to deploy new preview');
-                        }
-                    }
                     else {
-                        core.info('unknown pr action: ' + utils_1.context.payload.action);
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
                     }
                 }
-                else {
-                    core.info('Preview is not enabled, ignoring...');
+            }
+            else if (utils_1.context.payload.action === 'synchronize') {
+                core.info('sync (preview enabled)...');
+                // TODO: comment in progress?
+                try {
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
+                    const result = yield (0, deploy_preview_1.deployPreview)(options);
+                    setOutputFromResult(result);
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
                 }
+                catch (err) {
+                    core.info('failed here test?');
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options);
+                    (0, core_1.setFailed)('Failed to deploy new preview');
+                }
+            }
+            else {
+                core.info('unknown pr action: ' + utils_1.context.payload.action);
                 //
             }
             // if (options.cmd === 'deploy') {
