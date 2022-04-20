@@ -120,8 +120,8 @@ export const getCurrentPullRequestId = async (
     auth: token
   });
 
-  // In the context of github PUSH, we don't have access to PR info in context
-  // NOTE: this part is not tested..
+  // In the context of GitHub PUSH, we don't have access to PR info in context
+  // NOTE: this part is not tested...
   if (context.eventName === 'push' && !!context.sha) {
     const result = await client.rest.repos.listPullRequestsAssociatedWithCommit(
       {
@@ -143,6 +143,28 @@ export const getCurrentPullRequestId = async (
     return context.payload.pull_request.number;
   } else {
     throw new Error('Can only run on commit or pull_request');
+  }
+};
+
+/***
+ * Thumbs-up the comment that triggered this action
+ * @param token
+ */
+export const likeTriggeringComment = async (token: string) => {
+  const client = new GitHub({
+    auth: token
+  });
+
+  try {
+    await client.rest.reactions.createForIssueComment({
+      comment_id: (context.payload as any).comment.id,
+      content: 'eyes',
+      owner: context.repo.owner,
+      repo: context.repo.repo
+    });
+    core.info('Liked the comment 👍');
+  } catch (err) {
+    core.error('👎 Failed to like you..');
   }
 };
 

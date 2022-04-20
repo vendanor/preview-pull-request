@@ -65,12 +65,6 @@ export const removePreviewsForCurrentPullRequest = async (
 
   if (shouldRemoveCharts) {
     core.info('Removing charts..');
-    validateOptions(options, 'remove', [
-      'helmRepoUrl',
-      'helmRepoUsername',
-      'helmRepoPassword',
-      'appName'
-    ]);
 
     const url = `${helmRepoUrl}/api/charts/${appName}`;
     core.info('Get a list of all charts for app, url: ' + url);

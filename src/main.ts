@@ -3,9 +3,10 @@ import { CommandResult, Options, validateOptions } from './common';
 import { removePreviewsForCurrentPullRequest } from './remove-preview';
 import { deployPreview } from './deploy-preview';
 import { batman } from './batman';
-import { MessageType, postOrUpdateGithubComment } from './sticky-comment';
-import { getCurrentPullRequestId } from './github-util';
-import { generateHash } from './crypto-util';
+import { postOrUpdateGithubComment } from './sticky-comment';
+import { likeTriggeringComment } from './github-util';
+import { context } from '@actions/github/lib/utils';
+import { parseComment } from './parseComment';
 
 const setOutputFromResult = (result: CommandResult) => {
   if (result.previewUrl) {
@@ -20,9 +21,11 @@ const setOutputFromResult = (result: CommandResult) => {
   core.setOutput('success', result.success);
 };
 
+// TODO: cancellation? cleanup?
+// https://docs.github.com/en/actions/managing-workflow-runs/canceling-a-workflow
+
 async function run(): Promise<void> {
   const options: Options = {
-    cmd: core.getInput('command', { required: true }),
     appName: core.getInput('app-name'),
     helmNamespace: core.getInput('helm-namespace'),
     githubToken: core.getInput('token'),
@@ -60,60 +63,88 @@ async function run(): Promise<void> {
   try {
     core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
     core.info(batman);
-    if (options.cmd === 'deploy') {
-      validateOptions(options, 'deploy', [
-        'appName',
-        'dockerUsername',
-        'dockerPassword',
-        'dockerRegistry',
-        'dockerOrganization',
-        'githubToken',
-        'dockerTagMajor',
-        'helmTagMajor',
-        'helmChartFilePath',
-        'hashSalt'
-      ]);
-      const result = await deployPreview(options);
-      setOutputFromResult(result);
-      await postOrUpdateGithubComment('success', options, result.previewUrl);
-    } else if (options.cmd.startsWith('notify')) {
-      validateOptions(options, 'notify', [
-        'githubToken',
-        'hashSalt',
-        'appName',
-        'baseUrl'
-      ]);
-      const pullRequestId = await getCurrentPullRequestId(options.githubToken);
-      const hash = generateHash(pullRequestId, options.hashSalt);
-      const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
-      const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
 
-      let messageType: MessageType = 'welcome';
-      // if (options.cmd === 'notify-start') {
-      //   messageType = 'brewing';
-      // } else if (options.cmd === 'notify-cancelled') {
-      //   messageType = 'cancelled';
-      // } else if (options.cmd === 'notify-failed') {
-      //   messageType = 'fail';
-      // }
+    const isCommentAction = context.eventName === 'issue_comment';
+    const isPullRequestAction = context.eventName === 'pull_request';
+    const isPullRequestTargetAction =
+      context.eventName === 'pull_request_target';
+    const isBot = context.actor.toLowerCase().indexOf('bot') > -1;
+    // TODO: skip ci?? Except for remove preview?
 
-      await postOrUpdateGithubComment(messageType, options, completePreviewUrl);
-      setOutputFromResult({
-        success: true
-      });
-    } else if (options.cmd === 'remove') {
-      validateOptions(options, 'remove', [
-        'githubToken',
-        'helmNamespace',
-        'appName'
-      ]);
-      const result = await removePreviewsForCurrentPullRequest(options);
-      setOutputFromResult(result);
-      await postOrUpdateGithubComment('removed', options);
-    } else {
-      throw new Error(`Command ${options.cmd} not supported`);
+    core.info(`isComment: ${isCommentAction}`);
+    core.info(`isPullRequest: ${isPullRequestAction}`);
+    core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
+    core.info('action' + context.action);
+    core.info('actor' + context.actor);
+    core.info('workflow' + context.workflow);
+    core.info('isBot' + isBot);
+
+    validateOptions(options);
+
+    if (isCommentAction) {
+      const commentAction = parseComment();
+      if (commentAction === 'add') {
+        await likeTriggeringComment(options.githubToken);
+        const result = await deployPreview(options);
+        setOutputFromResult(result);
+        await postOrUpdateGithubComment('success', options, result.previewUrl);
+      } else if (commentAction === 'remove') {
+        await likeTriggeringComment(options.githubToken);
+        const result = await removePreviewsForCurrentPullRequest(options);
+        setOutputFromResult(result);
+        await postOrUpdateGithubComment('removed', options);
+      }
+    } else if (isPullRequestAction || isPullRequestTargetAction) {
+      // action: opened, synchronize, closed, reopened
+      if (context.action === 'closed') {
+        // TODO: add comment "Closing"?
+        const result = await removePreviewsForCurrentPullRequest(options);
+        setOutputFromResult(result);
+        await postOrUpdateGithubComment('removed', options);
+      } else if (
+        context.action === 'opened' ||
+        context.action === 'reopened' ||
+        context.action === 'synchronize'
+      ) {
+        await postOrUpdateGithubComment('welcome', options);
+      } else {
+        core.info('unknown pr action: ' + context.action);
+      }
     }
-    core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
+
+    // if (options.cmd === 'deploy') {
+    //
+    //   const result = await deployPreview(options);
+    //   setOutputFromResult(result);
+    //   await postOrUpdateGithubComment('success', options, result.previewUrl);
+    // } else if (options.cmd.startsWith('notify')) {
+    //   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
+    //   const hash = generateHash(pullRequestId, options.hashSalt);
+    //   const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
+    //   const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
+    //
+    //   let messageType: MessageType = 'welcome';
+    //   // if (options.cmd === 'notify-start') {
+    //   //   messageType = 'brewing';
+    //   // } else if (options.cmd === 'notify-cancelled') {
+    //   //   messageType = 'cancelled';
+    //   // } else if (options.cmd === 'notify-failed') {
+    //   //   messageType = 'fail';
+    //   // }
+    //
+    //   await postOrUpdateGithubComment(messageType, options, completePreviewUrl);
+    //   setOutputFromResult({
+    //     success: true
+    //   });
+    // } else if (options.cmd === 'remove') {
+    //   const result = await removePreviewsForCurrentPullRequest(options);
+    //   setOutputFromResult(result);
+    //   await postOrUpdateGithubComment('removed', options);
+    // } else {
+    //   throw new Error(`Command ${options.cmd} not supported`);
+    // }
+
+    core.info('🍺 Done!');
   } catch (error: any) {
     await postOrUpdateGithubComment('fail', options);
     setOutputFromResult({

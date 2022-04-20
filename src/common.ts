@@ -35,7 +35,7 @@ export interface Options {
   githubToken: string;
   helmNamespace: string;
   appName: string;
-  cmd: Command | string;
+  // cmd: Command | string;
 }
 
 export interface CommandResult {
@@ -87,7 +87,6 @@ const optionsDict: { [key in OptionKeys]: string } = {
   helmKeyClusterIssuer: 'helm-key-cluster-issuer',
   helmKeyTlsSecretName: 'helm-key-tls-secret-name',
   helmRemovePreviewCharts: 'helm-preview-charts',
-  cmd: 'command',
   helmKeyUrl: 'helm-key-url',
   helmKeyNamespace: 'helm-key-namespace',
   helmKeyImage: 'helm-key-image',
@@ -113,24 +112,28 @@ const optionsDict: { [key in OptionKeys]: string } = {
   wait: 'wait'
 };
 
-export function validateOptions(
-  options: Options,
-  command: Command,
-  requiredOptions: Array<OptionKeys>
-) {
+export function validateOptions(options: Options) {
   const errorMessages: Array<string> = [];
+  const requiredOptions: Array<keyof Options> = [
+    'appName',
+    'dockerUsername',
+    'dockerPassword',
+    'dockerRegistry',
+    'dockerOrganization',
+    'githubToken',
+    'dockerTagMajor',
+    'helmTagMajor',
+    'helmChartFilePath',
+    'hashSalt'
+  ];
   requiredOptions.forEach(value => {
     if (options[value] === undefined) {
-      errorMessages.push(
-        `Option ${optionsDict[value]} is required for command ${command}`
-      );
+      errorMessages.push(`Option ${optionsDict[value]} is required`);
     } else if (
       typeof options[value] === 'string' &&
       options[value]?.length === 0
     ) {
-      errorMessages.push(
-        `Option ${optionsDict[value]} is required for command ${command}`
-      );
+      errorMessages.push(`Option ${optionsDict[value]} is required`);
     }
   });
   if (errorMessages.length) {
