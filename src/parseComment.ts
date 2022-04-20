@@ -1,7 +1,7 @@
 import * as core from '@actions/core';
 import { context } from '@actions/github/lib/utils';
 
-const commentPrefix = '@preview';
+const commentPrefix = 'preview';
 
 type CommentAction = 'add' | 'remove';
 

@@ -20,8 +20,8 @@ export type MessageType =
 const commands = `
 
 You can trigger preview-pull-request by commenting on this PR:  
-- \`@preview add\` will deploy a preview 
-- \`@preview remove\` will remove a preview
+- \`preview add\` will deploy a preview 
+- \`preview remove\` will remove a preview
 
 Previews will be removed when you close the PR
  
