@@ -42,7 +42,6 @@ const optionsDict = {
     helmKeyClusterIssuer: 'helm-key-cluster-issuer',
     helmKeyTlsSecretName: 'helm-key-tls-secret-name',
     helmRemovePreviewCharts: 'helm-preview-charts',
-    cmd: 'command',
     helmKeyUrl: 'helm-key-url',
     helmKeyNamespace: 'helm-key-namespace',
     helmKeyImage: 'helm-key-image',
@@ -67,16 +66,28 @@ const optionsDict = {
     helmValues: 'helm-values',
     wait: 'wait'
 };
-function validateOptions(options, command, requiredOptions) {
+function validateOptions(options) {
     const errorMessages = [];
+    const requiredOptions = [
+        'appName',
+        'dockerUsername',
+        'dockerPassword',
+        'dockerRegistry',
+        'dockerOrganization',
+        'githubToken',
+        'dockerTagMajor',
+        'helmTagMajor',
+        'helmChartFilePath',
+        'hashSalt'
+    ];
     requiredOptions.forEach(value => {
         var _a;
         if (options[value] === undefined) {
-            errorMessages.push(`Option ${optionsDict[value]} is required for command ${command}`);
+            errorMessages.push(`Option ${optionsDict[value]} is required`);
         }
         else if (typeof options[value] === 'string' &&
             ((_a = options[value]) === null || _a === void 0 ? void 0 : _a.length) === 0) {
-            errorMessages.push(`Option ${optionsDict[value]} is required for command ${command}`);
+            errorMessages.push(`Option ${optionsDict[value]} is required`);
         }
     });
     if (errorMessages.length) {
@@ -426,7 +437,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getLatestCommitShortSha = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.findPreviousComment = void 0;
+exports.getLatestCommitShortSha = exports.likeTriggeringComment = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.findPreviousComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
 // NOTE: mostly copy-paste from github action sticky pull request
@@ -503,8 +514,8 @@ const getCurrentPullRequestId = (token) => __awaiter(void 0, void 0, void 0, fun
     const client = new utils_1.GitHub({
         auth: token
     });
-    // In the context of github PUSH, we don't have access to PR info in context
-    // NOTE: this part is not tested..
+    // In the context of GitHub PUSH, we don't have access to PR info in context
+    // NOTE: this part is not tested...
     if (utils_1.context.eventName === 'push' && !!utils_1.context.sha) {
         const result = yield client.rest.repos.listPullRequestsAssociatedWithCommit({
             owner: utils_1.context.repo.owner,
@@ -526,6 +537,28 @@ const getCurrentPullRequestId = (token) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.getCurrentPullRequestId = getCurrentPullRequestId;
+/***
+ * Thumbs-up the comment that triggered this action
+ * @param token
+ */
+const likeTriggeringComment = (token) => __awaiter(void 0, void 0, void 0, function* () {
+    const client = new utils_1.GitHub({
+        auth: token
+    });
+    try {
+        yield client.rest.reactions.createForIssueComment({
+            comment_id: utils_1.context.payload.comment.id,
+            content: 'eyes',
+            owner: utils_1.context.repo.owner,
+            repo: utils_1.context.repo.repo
+        });
+        core.info('Liked the comment 👍');
+    }
+    catch (err) {
+        core.error('👎 Failed to like you..');
+    }
+});
+exports.likeTriggeringComment = likeTriggeringComment;
 const getLatestCommitShortSha = (token) => __awaiter(void 0, void 0, void 0, function* () {
     // we need sha of latest commit
     const client = new utils_1.GitHub({
@@ -854,7 +887,8 @@ const deploy_preview_1 = __nccwpck_require__(958);
 const batman_1 = __nccwpck_require__(6921);
 const sticky_comment_1 = __nccwpck_require__(1788);
 const github_util_1 = __nccwpck_require__(2762);
-const crypto_util_1 = __nccwpck_require__(9255);
+const utils_1 = __nccwpck_require__(3030);
+const parseComment_1 = __nccwpck_require__(4350);
 const setOutputFromResult = (result) => {
     if (result.previewUrl) {
         core.setOutput('preview-url', result.previewUrl);
@@ -867,10 +901,11 @@ const setOutputFromResult = (result) => {
     }
     core.setOutput('success', result.success);
 };
+// TODO: cancellation? cleanup?
+// https://docs.github.com/en/actions/managing-workflow-runs/canceling-a-workflow
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         const options = {
-            cmd: core.getInput('command', { required: true }),
             appName: core.getInput('app-name'),
             helmNamespace: core.getInput('helm-namespace'),
             githubToken: core.getInput('token'),
@@ -907,61 +942,81 @@ function run() {
         try {
             core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
             core.info(batman_1.batman);
-            if (options.cmd === 'deploy') {
-                (0, common_1.validateOptions)(options, 'deploy', [
-                    'appName',
-                    'dockerUsername',
-                    'dockerPassword',
-                    'dockerRegistry',
-                    'dockerOrganization',
-                    'githubToken',
-                    'dockerTagMajor',
-                    'helmTagMajor',
-                    'helmChartFilePath',
-                    'hashSalt'
-                ]);
-                const result = yield (0, deploy_preview_1.deployPreview)(options);
-                setOutputFromResult(result);
-                yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
+            const isCommentAction = utils_1.context.eventName === 'issue_comment';
+            const isPullRequestAction = utils_1.context.eventName === 'pull_request';
+            const isPullRequestTargetAction = utils_1.context.eventName === 'pull_request_target';
+            const isBot = utils_1.context.actor.toLowerCase().indexOf('bot') > -1;
+            // TODO: skip ci?? Except for remove preview?
+            core.info(`isComment: ${isCommentAction}`);
+            core.info(`isPullRequest: ${isPullRequestAction}`);
+            core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
+            core.info('action' + utils_1.context.action);
+            core.info('actor' + utils_1.context.actor);
+            core.info('workflow' + utils_1.context.workflow);
+            core.info('isBot' + isBot);
+            (0, common_1.validateOptions)(options);
+            if (isCommentAction) {
+                const commentAction = (0, parseComment_1.parseComment)();
+                if (commentAction === 'add') {
+                    yield (0, github_util_1.likeTriggeringComment)(options.githubToken);
+                    const result = yield (0, deploy_preview_1.deployPreview)(options);
+                    setOutputFromResult(result);
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
+                }
+                else if (commentAction === 'remove') {
+                    yield (0, github_util_1.likeTriggeringComment)(options.githubToken);
+                    const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
+                    setOutputFromResult(result);
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
+                }
             }
-            else if (options.cmd.startsWith('notify')) {
-                (0, common_1.validateOptions)(options, 'notify', [
-                    'githubToken',
-                    'hashSalt',
-                    'appName',
-                    'baseUrl'
-                ]);
-                const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
-                const hash = (0, crypto_util_1.generateHash)(pullRequestId, options.hashSalt);
-                const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
-                const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
-                let messageType = 'welcome';
-                // if (options.cmd === 'notify-start') {
-                //   messageType = 'brewing';
-                // } else if (options.cmd === 'notify-cancelled') {
-                //   messageType = 'cancelled';
-                // } else if (options.cmd === 'notify-failed') {
-                //   messageType = 'fail';
-                // }
-                yield (0, sticky_comment_1.postOrUpdateGithubComment)(messageType, options, completePreviewUrl);
-                setOutputFromResult({
-                    success: true
-                });
+            else if (isPullRequestAction || isPullRequestTargetAction) {
+                // action: opened, synchronize, closed, reopened
+                if (utils_1.context.action === 'closed') {
+                    // TODO: add comment "Closing"?
+                    const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
+                    setOutputFromResult(result);
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
+                }
+                else if (utils_1.context.action === 'opened' || utils_1.context.action === 'reopened' || utils_1.context.action === 'synchronize') {
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
+                }
+                else {
+                    core.info('unknown pr action: ' + utils_1.context.action);
+                }
             }
-            else if (options.cmd === 'remove') {
-                (0, common_1.validateOptions)(options, 'remove', [
-                    'githubToken',
-                    'helmNamespace',
-                    'appName'
-                ]);
-                const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
-                setOutputFromResult(result);
-                yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
-            }
-            else {
-                throw new Error(`Command ${options.cmd} not supported`);
-            }
-            core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
+            // if (options.cmd === 'deploy') {
+            //
+            //   const result = await deployPreview(options);
+            //   setOutputFromResult(result);
+            //   await postOrUpdateGithubComment('success', options, result.previewUrl);
+            // } else if (options.cmd.startsWith('notify')) {
+            //   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
+            //   const hash = generateHash(pullRequestId, options.hashSalt);
+            //   const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
+            //   const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
+            //
+            //   let messageType: MessageType = 'welcome';
+            //   // if (options.cmd === 'notify-start') {
+            //   //   messageType = 'brewing';
+            //   // } else if (options.cmd === 'notify-cancelled') {
+            //   //   messageType = 'cancelled';
+            //   // } else if (options.cmd === 'notify-failed') {
+            //   //   messageType = 'fail';
+            //   // }
+            //
+            //   await postOrUpdateGithubComment(messageType, options, completePreviewUrl);
+            //   setOutputFromResult({
+            //     success: true
+            //   });
+            // } else if (options.cmd === 'remove') {
+            //   const result = await removePreviewsForCurrentPullRequest(options);
+            //   setOutputFromResult(result);
+            //   await postOrUpdateGithubComment('removed', options);
+            // } else {
+            //   throw new Error(`Command ${options.cmd} not supported`);
+            // }
+            core.info('🍺 Done!');
         }
         catch (error) {
             yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options);
@@ -974,6 +1029,60 @@ function run() {
     });
 }
 run();
+
+
+/***/ }),
+
+/***/ 4350:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.parseComment = void 0;
+const core = __importStar(__nccwpck_require__(2186));
+const utils_1 = __nccwpck_require__(3030);
+const commentPrefix = '@preview';
+const parseComment = () => {
+    const comment = utils_1.context.payload.comment.body;
+    if (!comment.startsWith(commentPrefix)) {
+        core.info(`HINT: Preview comments must start with ${commentPrefix}`);
+        return;
+    }
+    else {
+        const action = comment.replace(commentPrefix, '').trim();
+        if (action === 'add' || action === 'remove') {
+            return action;
+        }
+        else {
+            core.info(`HINT: Unknown command ${action}`);
+        }
+    }
+};
+exports.parseComment = parseComment;
 
 
 /***/ }),
@@ -1061,12 +1170,6 @@ const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 
     }
     if (shouldRemoveCharts) {
         core.info('Removing charts..');
-        (0, common_1.validateOptions)(options, 'remove', [
-            'helmRepoUrl',
-            'helmRepoUsername',
-            'helmRepoPassword',
-            'appName'
-        ]);
         const url = `${helmRepoUrl}/api/charts/${appName}`;
         core.info('Get a list of all charts for app, url: ' + url);
         const allCharts = yield axios_1.default.get(url, {
@@ -1228,9 +1331,13 @@ exports.postOrUpdateGithubComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github_util_1 = __nccwpck_require__(2762);
 const commands = `
-You can trigger preview-pull-request by commenting on this PR:
+
+You can trigger preview-pull-request by commenting on this PR:  
 - \`@preview add\` will deploy a preview 
-- \`@preview remove\` will remove a preview 
+- \`@preview remove\` will remove a preview
+
+Previews will be removed when you close the PR
+ 
 `;
 function postOrUpdateGithubComment(type, options, completePreviewUrl) {
     return __awaiter(this, void 0, void 0, function* () {
