@@ -974,12 +974,10 @@ function run() {
             core.info(`isComment: ${isCommentAction}`);
             core.info(`isPullRequest: ${isPullRequestAction}`);
             core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
-            core.info('action' + utils_1.context.action);
             core.info('actor' + utils_1.context.actor);
-            core.info('workflow' + utils_1.context.workflow);
             core.info('isBot' + isBot);
-            const temp = JSON.stringify(utils_1.context, null, 2);
-            core.info(temp);
+            // const temp = JSON.stringify(context, null, 2);
+            // core.info(temp);
             (0, common_1.validateOptions)(options);
             if (isCommentAction) {
                 const commentAction = (0, parseComment_1.parseComment)();
@@ -1022,25 +1020,29 @@ function run() {
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
                     }
                 }
-            }
-            else if (utils_1.context.payload.action === 'synchronize') {
-                core.info('sync (preview enabled)...');
-                // TODO: comment in progress?
-                try {
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
-                    const result = yield (0, deploy_preview_1.deployPreview)(options);
-                    setOutputFromResult(result);
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
-                }
-                catch (err) {
-                    core.info('failed here test?');
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options);
-                    (0, core_1.setFailed)('Failed to deploy new preview');
+                else if (utils_1.context.payload.action === 'synchronize') {
+                    core.info('synchronize');
+                    if (isPreviewEnabled) {
+                        core.info('sync_enabled...');
+                        try {
+                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
+                            const result = yield (0, deploy_preview_1.deployPreview)(options);
+                            setOutputFromResult(result);
+                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
+                        }
+                        catch (err) {
+                            core.info('failed here test?');
+                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options);
+                            (0, core_1.setFailed)('Failed to deploy new preview');
+                        }
+                    }
+                    else {
+                        core.info('sync_disabled...skip...');
+                    }
                 }
             }
             else {
                 core.info('unknown pr action: ' + utils_1.context.payload.action);
-                //
             }
             // if (options.cmd === 'deploy') {
             //

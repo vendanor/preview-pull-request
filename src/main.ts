@@ -78,12 +78,10 @@ async function run(): Promise<void> {
     core.info(`isComment: ${isCommentAction}`);
     core.info(`isPullRequest: ${isPullRequestAction}`);
     core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
-    core.info('action' + context.action);
     core.info('actor' + context.actor);
-    core.info('workflow' + context.workflow);
     core.info('isBot' + isBot);
-    const temp = JSON.stringify(context, null, 2);
-    core.info(temp);
+    // const temp = JSON.stringify(context, null, 2);
+    // core.info(temp);
 
     validateOptions(options);
 
@@ -129,24 +127,31 @@ async function run(): Promise<void> {
         } else {
           await postOrUpdateGithubComment('welcome', options);
         }
-      }
-    } else if (context.payload.action === 'synchronize') {
-      core.info('sync (preview enabled)...');
-      // TODO: comment in progress?
-      try {
-        await postOrUpdateGithubComment('brewing', options);
-        const result = await deployPreview(options);
-        setOutputFromResult(result);
-        await postOrUpdateGithubComment('success', options, result.previewUrl);
-      } catch (err) {
-        core.info('failed here test?');
-        await postOrUpdateGithubComment('fail', options);
-        setFailed('Failed to deploy new preview');
+      } else if (context.payload.action === 'synchronize') {
+        core.info('synchronize');
+
+        if (isPreviewEnabled) {
+          core.info('sync_enabled...');
+          try {
+            await postOrUpdateGithubComment('brewing', options);
+            const result = await deployPreview(options);
+            setOutputFromResult(result);
+            await postOrUpdateGithubComment(
+              'success',
+              options,
+              result.previewUrl
+            );
+          } catch (err) {
+            core.info('failed here test?');
+            await postOrUpdateGithubComment('fail', options);
+            setFailed('Failed to deploy new preview');
+          }
+        } else {
+          core.info('sync_disabled...skip...');
+        }
       }
     } else {
       core.info('unknown pr action: ' + context.payload.action);
-
-      //
     }
 
     // if (options.cmd === 'deploy') {
