@@ -7,7 +7,12 @@ import {
   getLatestCommitShortSha,
   updateComment
 } from './github-util';
-import { Options } from './common';
+import {
+  headerPreviewEnabled,
+  Options,
+  stickyEnabledPreviewKey,
+  stickyHeaderKey
+} from './common';
 
 export type MessageType =
   | 'welcome'
@@ -32,7 +37,6 @@ export async function postOrUpdateGithubComment(
   options: Options,
   completePreviewUrl?: string
 ) {
-  const header = `VnKubePreview`;
   const context = await getCurrentContext();
   const sha7 = await getLatestCommitShortSha(options.githubToken);
   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
@@ -42,34 +46,40 @@ export async function postOrUpdateGithubComment(
     'https://github.com/vendanor/preview-pull-request/blob/main/logo.png?raw=true';
   const messages: { [key in MessageType]: string } = {
     welcome: `
+${headerPreviewEnabled(false)}
 ![vn](${img} "vn")
 👷 Hello! Do you want to preview your stuff? 
 ${commands}
     `,
     fail: `
+${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 🚨🚨 Preview :: Last job failed! 🚨🚨
 Your preview (${sha7}) is (not yet) available.
 ${commands}
   `,
     success: `
+${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 Your preview (${sha7}) is available here:
 <https://${completePreviewUrl}>
 ${commands}
   `,
     removed: `
+${headerPreviewEnabled(false)}
 ![vn](${img} "vn")
 All previews are uninstalled from Kubernetes.  
 ${commands}
   `,
     brewing: `
+${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 
 👷 A new version (${sha7}) is currently building..
 ${commands}
     `,
     cancelled: `
+${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 🚨🚨 Preview :: Last job cancelled 🚨🚨
 Your preview (${sha7}) is (not yet) available.    
@@ -82,7 +92,7 @@ ${commands}
     options.githubToken,
     context.repo,
     pullRequestId,
-    header
+    stickyHeaderKey
   );
 
   if (previousComment) {
@@ -91,7 +101,7 @@ ${commands}
       context.repo,
       previousComment.id,
       body,
-      header
+      stickyHeaderKey
     );
   } else {
     await createComment(
@@ -99,7 +109,7 @@ ${commands}
       context.repo,
       pullRequestId,
       body,
-      header
+      stickyHeaderKey
     );
   }
 

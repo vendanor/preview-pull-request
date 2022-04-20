@@ -140,3 +140,12 @@ export function validateOptions(options: Options) {
     throw new Error(errorMessages.join('\n'));
   }
 }
+
+export const stickyHeaderKey = 'VnKubePreview';
+export const stickyEnabledPreviewKey = 'VnEnablePreview';
+export function headerPreviewEnabled(enable: boolean) {
+  return `<!-- ${stickyEnabledPreviewKey}:${enable} -->`;
+}
+export function headerStickyComment(header: string) {
+  return `<!-- Sticky Pull Request Comment:${header} -->`;
+}

@@ -4,9 +4,13 @@ import { removePreviewsForCurrentPullRequest } from './remove-preview';
 import { deployPreview } from './deploy-preview';
 import { batman } from './batman';
 import { postOrUpdateGithubComment } from './sticky-comment';
-import { likeTriggeringComment } from './github-util';
+import {
+  addCommentReaction,
+  readIsPreviewEnabledFromComment
+} from './github-util';
 import { context } from '@actions/github/lib/utils';
 import { parseComment } from './parseComment';
+import { setFailed } from '@actions/core';
 
 const setOutputFromResult = (result: CommandResult) => {
   if (result.previewUrl) {
@@ -86,32 +90,65 @@ async function run(): Promise<void> {
     if (isCommentAction) {
       const commentAction = parseComment();
       if (commentAction === 'add') {
-        await likeTriggeringComment(options.githubToken);
+        await addCommentReaction(options.githubToken, 'rocket');
         const result = await deployPreview(options);
         setOutputFromResult(result);
         await postOrUpdateGithubComment('success', options, result.previewUrl);
       } else if (commentAction === 'remove') {
-        await likeTriggeringComment(options.githubToken);
+        await addCommentReaction(options.githubToken, '+1');
         const result = await removePreviewsForCurrentPullRequest(options);
         setOutputFromResult(result);
         await postOrUpdateGithubComment('removed', options);
       }
     } else if (isPullRequestAction || isPullRequestTargetAction) {
       // action: opened, synchronize, closed, reopened
-      if (context.action === 'closed') {
-        // TODO: add comment "Closing"?
-        const result = await removePreviewsForCurrentPullRequest(options);
-        setOutputFromResult(result);
-        await postOrUpdateGithubComment('removed', options);
-      } else if (
-        context.payload.action === 'opened' ||
-        context.payload.action === 'reopened' ||
-        context.payload.action === 'synchronize'
-      ) {
-        await postOrUpdateGithubComment('welcome', options);
+      // synchronize: Triggered when a pull request's head branch is updated.
+      // For example, when the head branch is updated from the base branch,
+      // when new commits are pushed to the head branch, or when the
+      // base branch is changed.
+
+      const isPreviewEnabled = await readIsPreviewEnabledFromComment(
+        options.githubToken
+      );
+      core.info('isPreviewEnabled: ' + isPreviewEnabled);
+      if (isPreviewEnabled) {
+        if (context.action === 'closed') {
+          // TODO: add comment "Closing"?
+          core.info('closed...');
+          const result = await removePreviewsForCurrentPullRequest(options);
+          setOutputFromResult(result);
+          await postOrUpdateGithubComment('removed', options);
+        } else if (
+          context.payload.action === 'opened' ||
+          context.payload.action === 'reopened'
+        ) {
+          core.info('opened or reopened, show welcome...');
+          await postOrUpdateGithubComment('welcome', options);
+        } else if (context.payload.action === 'synchronize') {
+          core.info('sync (preview enabled)...');
+          // TODO: comment in progress?
+          try {
+            await postOrUpdateGithubComment('brewing', options);
+            const result = await deployPreview(options);
+            setOutputFromResult(result);
+            await postOrUpdateGithubComment(
+              'success',
+              options,
+              result.previewUrl
+            );
+          } catch (err) {
+            core.info('failed here test?');
+            await postOrUpdateGithubComment('fail', options);
+            setFailed('Failed to deploy new preview');
+          }
+        } else {
+          core.info('unknown pr action: ' + context.payload.action);
+        }
       } else {
-        core.info('unknown pr action: ' + context.action);
+        core.info('Preview is not enabled, ignoring...');
       }
+
+      //
     }
 
     // if (options.cmd === 'deploy') {

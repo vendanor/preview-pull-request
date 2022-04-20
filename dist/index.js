@@ -30,7 +30,7 @@ YJGS8P"Y888P"Y888P"Y888P"Y8888P
 "use strict";
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.validateOptions = exports.PREVIEW_TAG_PREFIX = void 0;
+exports.headerStickyComment = exports.headerPreviewEnabled = exports.stickyEnabledPreviewKey = exports.stickyHeaderKey = exports.validateOptions = exports.PREVIEW_TAG_PREFIX = void 0;
 exports.PREVIEW_TAG_PREFIX = '-preview';
 const optionsDict = {
     appName: 'app-name',
@@ -95,6 +95,16 @@ function validateOptions(options) {
     }
 }
 exports.validateOptions = validateOptions;
+exports.stickyHeaderKey = 'VnKubePreview';
+exports.stickyEnabledPreviewKey = 'VnEnablePreview';
+function headerPreviewEnabled(enable) {
+    return `<!-- ${exports.stickyEnabledPreviewKey}:${enable} -->`;
+}
+exports.headerPreviewEnabled = headerPreviewEnabled;
+function headerStickyComment(header) {
+    return `<!-- Sticky Pull Request Comment:${header} -->`;
+}
+exports.headerStickyComment = headerStickyComment;
 
 
 /***/ }),
@@ -279,7 +289,7 @@ function deployPreview(options) {
             core.info('helm-repo-url was not set, skipping publish helm chart');
         }
         // Install or upgrade Helm preview release
-        core.info('Ready to deploy to AKS...');
+        core.info('Ready to deploy to Kubernetes...');
         const hash = (0, crypto_util_1.generateHash)(pullRequestId, options.hashSalt);
         const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
         const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
@@ -437,24 +447,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getLatestCommitShortSha = exports.likeTriggeringComment = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.findPreviousComment = void 0;
+exports.getLatestCommitShortSha = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
-// NOTE: mostly copy-paste from github action sticky pull request
-function headerComment(header) {
-    return `<!-- Sticky Pull Request Comment${header} -->`;
-}
+const common_1 = __nccwpck_require__(6979);
 function findPreviousComment(token, repo, issue_number, header) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = new utils_1.GitHub({
             auth: token
         });
         const { data: comments } = yield octokit.rest.issues.listComments(Object.assign(Object.assign({}, repo), { issue_number }));
-        const h = headerComment(header);
+        const h = (0, common_1.headerStickyComment)(header);
         return comments.find(comment => { var _a; return (_a = comment.body) === null || _a === void 0 ? void 0 : _a.includes(h); });
     });
 }
 exports.findPreviousComment = findPreviousComment;
+function readIsPreviewEnabledFromComment(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const pullRequestId = yield (0, exports.getCurrentPullRequestId)(token);
+        const previewComment = yield findPreviousComment(token, utils_1.context.repo, pullRequestId, common_1.stickyHeaderKey);
+        if (previewComment) {
+            // read status from comment..
+            core.info('found comment, read status..');
+            if (previewComment.body) {
+                core.info(previewComment.body); // TODO: remove after debug..
+                return previewComment.body.indexOf((0, common_1.headerPreviewEnabled)(true)) > -1;
+            }
+        }
+        return false;
+    });
+}
+exports.readIsPreviewEnabledFromComment = readIsPreviewEnabledFromComment;
 function updateComment(token, repo, comment_id, body, header, previousBody) {
     return __awaiter(this, void 0, void 0, function* () {
         const octokit = new utils_1.GitHub({
@@ -464,7 +487,7 @@ function updateComment(token, repo, comment_id, body, header, previousBody) {
             return core.warning('Comment body cannot be blank');
         yield octokit.rest.issues.updateComment(Object.assign(Object.assign({}, repo), { comment_id, body: previousBody
                 ? `${previousBody}\n${body}`
-                : `${body}\n${headerComment(header)}` }));
+                : `${body}\n${(0, common_1.headerStickyComment)(header)}` }));
     });
 }
 exports.updateComment = updateComment;
@@ -477,7 +500,7 @@ function createComment(token, repo, issue_number, body, header, previousBody) {
             return core.warning('Comment body cannot be blank');
         yield octokit.rest.issues.createComment(Object.assign(Object.assign({}, repo), { issue_number, body: previousBody
                 ? `${previousBody}\n${body}`
-                : `${body}\n${headerComment(header)}` }));
+                : `${body}\n${(0, common_1.headerStickyComment)(header)}` }));
     });
 }
 exports.createComment = createComment;
@@ -540,25 +563,25 @@ exports.getCurrentPullRequestId = getCurrentPullRequestId;
 /***
  * Thumbs-up the comment that triggered this action
  * @param token
+ * @param content
  */
-const likeTriggeringComment = (token) => __awaiter(void 0, void 0, void 0, function* () {
+const addCommentReaction = (token, content) => __awaiter(void 0, void 0, void 0, function* () {
     const client = new utils_1.GitHub({
         auth: token
     });
     try {
         yield client.rest.reactions.createForIssueComment({
             comment_id: utils_1.context.payload.comment.id,
-            content: 'eyes',
+            content: content,
             owner: utils_1.context.repo.owner,
             repo: utils_1.context.repo.repo
         });
-        core.info('Liked the comment 👍');
     }
     catch (err) {
-        core.error('👎 Failed to like you..');
+        core.error('👎 Failed to add reaction');
     }
 });
-exports.likeTriggeringComment = likeTriggeringComment;
+exports.addCommentReaction = addCommentReaction;
 const getLatestCommitShortSha = (token) => __awaiter(void 0, void 0, void 0, function* () {
     // we need sha of latest commit
     const client = new utils_1.GitHub({
@@ -889,6 +912,7 @@ const sticky_comment_1 = __nccwpck_require__(1788);
 const github_util_1 = __nccwpck_require__(2762);
 const utils_1 = __nccwpck_require__(3030);
 const parseComment_1 = __nccwpck_require__(4350);
+const core_1 = __nccwpck_require__(2186);
 const setOutputFromResult = (result) => {
     if (result.previewUrl) {
         core.setOutput('preview-url', result.previewUrl);
@@ -960,13 +984,13 @@ function run() {
             if (isCommentAction) {
                 const commentAction = (0, parseComment_1.parseComment)();
                 if (commentAction === 'add') {
-                    yield (0, github_util_1.likeTriggeringComment)(options.githubToken);
+                    yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
                     const result = yield (0, deploy_preview_1.deployPreview)(options);
                     setOutputFromResult(result);
                     yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
                 }
                 else if (commentAction === 'remove') {
-                    yield (0, github_util_1.likeTriggeringComment)(options.githubToken);
+                    yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
                     const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
                     setOutputFromResult(result);
                     yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
@@ -974,20 +998,48 @@ function run() {
             }
             else if (isPullRequestAction || isPullRequestTargetAction) {
                 // action: opened, synchronize, closed, reopened
-                if (utils_1.context.action === 'closed') {
-                    // TODO: add comment "Closing"?
-                    const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
-                    setOutputFromResult(result);
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
-                }
-                else if (utils_1.context.payload.action === 'opened' ||
-                    utils_1.context.payload.action === 'reopened' ||
-                    utils_1.context.payload.action === 'synchronize') {
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
+                // synchronize: Triggered when a pull request's head branch is updated.
+                // For example, when the head branch is updated from the base branch,
+                // when new commits are pushed to the head branch, or when the
+                // base branch is changed.
+                const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
+                core.info('isPreviewEnabled: ' + isPreviewEnabled);
+                if (isPreviewEnabled) {
+                    if (utils_1.context.action === 'closed') {
+                        // TODO: add comment "Closing"?
+                        core.info('closed...');
+                        const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
+                        setOutputFromResult(result);
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
+                    }
+                    else if (utils_1.context.payload.action === 'opened' ||
+                        utils_1.context.payload.action === 'reopened') {
+                        core.info('opened or reopened, show welcome...');
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
+                    }
+                    else if (utils_1.context.payload.action === 'synchronize') {
+                        core.info('sync (preview enabled)...');
+                        // TODO: comment in progress?
+                        try {
+                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
+                            const result = yield (0, deploy_preview_1.deployPreview)(options);
+                            setOutputFromResult(result);
+                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
+                        }
+                        catch (err) {
+                            core.info('failed here test?');
+                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options);
+                            (0, core_1.setFailed)('Failed to deploy new preview');
+                        }
+                    }
+                    else {
+                        core.info('unknown pr action: ' + utils_1.context.payload.action);
+                    }
                 }
                 else {
-                    core.info('unknown pr action: ' + utils_1.context.action);
+                    core.info('Preview is not enabled, ignoring...');
                 }
+                //
             }
             // if (options.cmd === 'deploy') {
             //
@@ -1334,6 +1386,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.postOrUpdateGithubComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const github_util_1 = __nccwpck_require__(2762);
+const common_1 = __nccwpck_require__(6979);
 const commands = `
 
 You can trigger preview-pull-request by commenting on this PR:  
@@ -1345,7 +1398,6 @@ Previews will be removed when you close the PR
 `;
 function postOrUpdateGithubComment(type, options, completePreviewUrl) {
     return __awaiter(this, void 0, void 0, function* () {
-        const header = `VnKubePreview`;
         const context = yield (0, github_util_1.getCurrentContext)();
         const sha7 = yield (0, github_util_1.getLatestCommitShortSha)(options.githubToken);
         const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
@@ -1353,34 +1405,40 @@ function postOrUpdateGithubComment(type, options, completePreviewUrl) {
         const img = 'https://github.com/vendanor/preview-pull-request/blob/main/logo.png?raw=true';
         const messages = {
             welcome: `
+${(0, common_1.headerPreviewEnabled)(false)}
 ![vn](${img} "vn")
 👷 Hello! Do you want to preview your stuff? 
 ${commands}
     `,
             fail: `
+${(0, common_1.headerPreviewEnabled)(true)}
 ![vn](${img} "vn")
 🚨🚨 Preview :: Last job failed! 🚨🚨
 Your preview (${sha7}) is (not yet) available.
 ${commands}
   `,
             success: `
+${(0, common_1.headerPreviewEnabled)(true)}
 ![vn](${img} "vn")
 Your preview (${sha7}) is available here:
 <https://${completePreviewUrl}>
 ${commands}
   `,
             removed: `
+${(0, common_1.headerPreviewEnabled)(false)}
 ![vn](${img} "vn")
 All previews are uninstalled from Kubernetes.  
 ${commands}
   `,
             brewing: `
+${(0, common_1.headerPreviewEnabled)(true)}
 ![vn](${img} "vn")
 
 👷 A new version (${sha7}) is currently building..
 ${commands}
     `,
             cancelled: `
+${(0, common_1.headerPreviewEnabled)(true)}
 ![vn](${img} "vn")
 🚨🚨 Preview :: Last job cancelled 🚨🚨
 Your preview (${sha7}) is (not yet) available.    
@@ -1388,12 +1446,12 @@ ${commands}
     `
         };
         const body = messages[type];
-        const previousComment = yield (0, github_util_1.findPreviousComment)(options.githubToken, context.repo, pullRequestId, header);
+        const previousComment = yield (0, github_util_1.findPreviousComment)(options.githubToken, context.repo, pullRequestId, common_1.stickyHeaderKey);
         if (previousComment) {
-            yield (0, github_util_1.updateComment)(options.githubToken, context.repo, previousComment.id, body, header);
+            yield (0, github_util_1.updateComment)(options.githubToken, context.repo, previousComment.id, body, common_1.stickyHeaderKey);
         }
         else {
-            yield (0, github_util_1.createComment)(options.githubToken, context.repo, pullRequestId, body, header);
+            yield (0, github_util_1.createComment)(options.githubToken, context.repo, pullRequestId, body, common_1.stickyHeaderKey);
         }
         core.info('Message posted in PR!');
     });

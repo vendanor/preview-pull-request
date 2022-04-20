@@ -1,13 +1,12 @@
 import * as core from '@actions/core';
 import { GitHub, context } from '@actions/github/lib/utils';
 import { Context } from '@actions/github/lib/context';
-import { Repo } from './common';
-
-// NOTE: mostly copy-paste from github action sticky pull request
-
-function headerComment(header: string) {
-  return `<!-- Sticky Pull Request Comment${header} -->`;
-}
+import {
+  headerPreviewEnabled,
+  headerStickyComment,
+  Repo,
+  stickyHeaderKey
+} from './common';
 
 export async function findPreviousComment(
   token: string,
@@ -23,8 +22,29 @@ export async function findPreviousComment(
     ...repo,
     issue_number
   });
-  const h = headerComment(header);
+  const h = headerStickyComment(header);
   return comments.find(comment => comment.body?.includes(h));
+}
+
+export async function readIsPreviewEnabledFromComment(token: string) {
+  const pullRequestId = await getCurrentPullRequestId(token);
+
+  const previewComment = await findPreviousComment(
+    token,
+    context.repo,
+    pullRequestId,
+    stickyHeaderKey
+  );
+
+  if (previewComment) {
+    // read status from comment..
+    core.info('found comment, read status..');
+    if (previewComment.body) {
+      core.info(previewComment.body); // TODO: remove after debug..
+      return previewComment.body.indexOf(headerPreviewEnabled(true)) > -1;
+    }
+  }
+  return false;
 }
 
 export async function updateComment(
@@ -47,7 +67,7 @@ export async function updateComment(
     comment_id,
     body: previousBody
       ? `${previousBody}\n${body}`
-      : `${body}\n${headerComment(header)}`
+      : `${body}\n${headerStickyComment(header)}`
   });
 }
 export async function createComment(
@@ -70,7 +90,7 @@ export async function createComment(
     issue_number,
     body: previousBody
       ? `${previousBody}\n${body}`
-      : `${body}\n${headerComment(header)}`
+      : `${body}\n${headerStickyComment(header)}`
   });
 }
 export async function deleteComment(
@@ -149,8 +169,20 @@ export const getCurrentPullRequestId = async (
 /***
  * Thumbs-up the comment that triggered this action
  * @param token
+ * @param content
  */
-export const likeTriggeringComment = async (token: string) => {
+export const addCommentReaction = async (
+  token: string,
+  content:
+    | '+1'
+    | '-1'
+    | 'laugh'
+    | 'confused'
+    | 'heart'
+    | 'hooray'
+    | 'rocket'
+    | 'eyes'
+) => {
   const client = new GitHub({
     auth: token
   });
@@ -158,13 +190,12 @@ export const likeTriggeringComment = async (token: string) => {
   try {
     await client.rest.reactions.createForIssueComment({
       comment_id: (context.payload as any).comment.id,
-      content: 'eyes',
+      content: content,
       owner: context.repo.owner,
       repo: context.repo.repo
     });
-    core.info('Liked the comment 👍');
   } catch (err) {
-    core.error('👎 Failed to like you..');
+    core.error('👎 Failed to add reaction');
   }
 };
 
