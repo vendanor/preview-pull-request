@@ -980,9 +980,9 @@ function run() {
                     setOutputFromResult(result);
                     yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
                 }
-                else if (utils_1.context.action === 'opened' ||
-                    utils_1.context.action === 'reopened' ||
-                    utils_1.context.action === 'synchronize') {
+                else if (utils_1.context.payload.action === 'opened' ||
+                    utils_1.context.payload.action === 'reopened' ||
+                    utils_1.context.payload.action === 'synchronize') {
                     yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
                 }
                 else {
