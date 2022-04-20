@@ -2,7 +2,7 @@ import * as core from '@actions/core';
 import { CommandResult, Options, validateOptions } from './common';
 import { removePreviewsForCurrentPullRequest } from './remove-preview';
 import { deployPreview } from './deploy-preview';
-import { dilbert } from './dilbert';
+import { batman } from './batman';
 import { MessageType, postOrUpdateGithubComment } from './sticky-comment';
 import { getCurrentPullRequestId } from './github-util';
 import { generateHash } from './crypto-util';
@@ -59,7 +59,7 @@ async function run(): Promise<void> {
 
   try {
     core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
-    core.info(dilbert);
+    core.info(batman);
     if (options.cmd === 'deploy') {
       validateOptions(options, 'deploy', [
         'appName',
