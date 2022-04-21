@@ -70,7 +70,7 @@ async function run(): Promise<void> {
   };
 
   try {
-    if (options.probe) {
+    if (options.probe.toLowerCase() === 'true') {
       core.info('👀 Running preview probe');
     } else {
       core.info('🕵 Running preview action');
@@ -116,7 +116,7 @@ async function run(): Promise<void> {
     }
 
     core.info('isValidCommand: ' + isValidCommand);
-    core.info('isPreviewPending' + isPreviewPending);
+    core.info('isPreviewPending: ' + isPreviewPending);
     core.setOutput('isValidCommand', isValidCommand);
     core.setOutput('isPreviewPending', isPreviewPending);
 

@@ -972,7 +972,7 @@ function run() {
             probe: core.getInput('probe')
         };
         try {
-            if (options.probe) {
+            if (options.probe.toLowerCase() === 'true') {
                 core.info('👀 Running preview probe');
             }
             else {
@@ -1011,7 +1011,7 @@ function run() {
                         utils_1.context.payload.action === 'synchronize';
             }
             core.info('isValidCommand: ' + isValidCommand);
-            core.info('isPreviewPending' + isPreviewPending);
+            core.info('isPreviewPending: ' + isPreviewPending);
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isPreviewPending', isPreviewPending);
             if (options.probe) {
