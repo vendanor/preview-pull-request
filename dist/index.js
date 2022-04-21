@@ -311,7 +311,7 @@ function deployPreview(options) {
             extraOverrides.forEach(value => overrides.push(value));
         }
         const extraCmds = [];
-        if (options.wait) {
+        if (options.wait.toLowerCase() === 'true') {
             extraCmds.push('--wait');
         }
         const finalResult = yield (0, run_cmd_1.runCmd)('helm', [

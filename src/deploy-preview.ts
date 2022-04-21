@@ -151,7 +151,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     extraOverrides.forEach(value => overrides.push(value));
   }
   const extraCmds = [];
-  if (options.wait) {
+  if (options.wait.toLowerCase() === 'true') {
     extraCmds.push('--wait');
   }
 
