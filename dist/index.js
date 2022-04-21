@@ -981,28 +981,33 @@ function run() {
             const isBot = utils_1.context.actor.toLowerCase().indexOf('bot') > -1;
             // TODO: skip ci?? Except for remove preview?
             const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
-            const commentAction = (0, parse_comment_1.parseComment)();
-            const isValidCommand = isCommentAction && !!commentAction;
-            const isPreviewPending = (isCommentAction && commentAction === 'add-preview') ||
-                (isPreviewEnabled &&
-                    (isPullRequestAction || isPullRequestTargetAction) &&
-                    utils_1.context.payload.action === 'synchronize');
             core.info(`isPullRequest: ${isPullRequestAction}`);
             core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
             core.info('actor: ' + utils_1.context.actor);
             core.info('isBot: ' + isBot);
             core.info('isPreviewEnabled: ' + isPreviewEnabled);
             core.info(`isComment: ${isCommentAction}`);
-            core.info('isValidCommand: ' + isValidCommand);
-            core.info('isPreviewPending' + isPreviewPending);
             core.setOutput('isBot', isBot);
             core.setOutput('isPreviewEnabled', isPreviewEnabled);
             core.setOutput('isComment', isCommentAction);
-            core.setOutput('isValidCommand', isValidCommand);
-            core.setOutput('isPreviewPending', isPreviewPending);
             // Debug:
             // const temp = JSON.stringify(context, null, 2);
             // core.info(temp);
+            let isValidCommand = false;
+            let isPreviewPending = false;
+            if (isCommentAction) {
+                const commentAction = (0, parse_comment_1.parseComment)();
+                isValidCommand = !!commentAction;
+                isPreviewPending =
+                    (isCommentAction && commentAction === 'add-preview') ||
+                        (isPreviewEnabled &&
+                            (isPullRequestAction || isPullRequestTargetAction) &&
+                            utils_1.context.payload.action === 'synchronize');
+            }
+            core.info('isValidCommand: ' + isValidCommand);
+            core.info('isPreviewPending' + isPreviewPending);
+            core.setOutput('isValidCommand', isValidCommand);
+            core.setOutput('isPreviewPending', isPreviewPending);
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 if (commentAction === 'add-preview') {
