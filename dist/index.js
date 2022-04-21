@@ -998,7 +998,9 @@ function run() {
             // True if a preview will be added on this run (unless probing)
             let isAddPreviewPending;
             // True if a preview will be removed on this run (unless probing)
-            const isRemovePreviewPending = (isPullRequestAction || isPullRequestTargetAction) && utils_1.context.payload.action === 'closed' && isPreviewEnabled;
+            const isRemovePreviewPending = (isPullRequestAction || isPullRequestTargetAction) &&
+                utils_1.context.payload.action === 'closed' &&
+                isPreviewEnabled;
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 isValidCommand = !!commentAction;
@@ -1169,8 +1171,9 @@ const utils_1 = __nccwpck_require__(3030);
 const commentPrefix = '@github-action';
 const parseComment = () => {
     const comment = utils_1.context.payload.comment.body;
-    if (!comment.startsWith(commentPrefix)) {
+    if (!comment.toLowerCase().startsWith(commentPrefix)) {
         core.info(`HINT: Preview comments must start with ${commentPrefix}`);
+        core.info(comment);
         return;
     }
     else {
