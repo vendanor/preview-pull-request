@@ -7,12 +7,7 @@ import {
   getLatestCommitShortSha,
   updateComment
 } from './github-util';
-import {
-  headerPreviewEnabled,
-  Options,
-  stickyEnabledPreviewKey,
-  stickyHeaderKey
-} from './common';
+import { headerPreviewEnabled, Options, stickyHeaderKey } from './common';
 
 export type MessageType =
   | 'welcome'
@@ -25,17 +20,20 @@ export type MessageType =
 const commands = `
 
 You can trigger preview-pull-request by commenting on this PR:  
-- \`preview add\` will deploy a preview 
-- \`preview remove\` will remove a preview
-
-Previews will be removed when you close the PR
+- \`@github-action add-preview\` will deploy a preview 
+- \`@github-action remove-preview\` will remove a preview
+- preview will be updated on new commits to PR
+- preview will be removed when the PR is closed
  
 `;
 
 export async function postOrUpdateGithubComment(
   type: MessageType,
   options: Options,
-  completePreviewUrl?: string
+  content?: {
+    completePreviewUrl?: string;
+    errorMessage?: string;
+  }
 ) {
   const context = await getCurrentContext();
   const sha7 = await getLatestCommitShortSha(options.githubToken);
@@ -55,6 +53,10 @@ ${commands}
 ${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 🚨🚨 Preview :: Last job failed! 🚨🚨
+
+${content?.errorMessage && 'Error message:'}
+${content?.errorMessage}
+
 Your preview (${sha7}) is (not yet) available.
 ${commands}
   `,
@@ -62,7 +64,7 @@ ${commands}
 ${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 Your preview (${sha7}) is available here:
-<https://${completePreviewUrl}>
+<https://${content?.completePreviewUrl}>
 ${commands}
   `,
     removed: `

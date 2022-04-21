@@ -1,5 +1,5 @@
-name: 'Preview Pull Requests in Azure Kubernetes Service'
-description: 'Deploy preview of Pull Requests to Azure Kubernetes Service using Helm charts'
+name: 'Preview Pull Requests in Kubernetes'
+description: 'Deploy preview of Pull Requests to Kubernetes using Helm charts'
 author: 'vendanor'
 
 branding:
@@ -128,7 +128,7 @@ inputs:
     description: "Extra values to pass to helm upgrade --set. Example: key1=val1,key2=val2"
   wait:
     required: false
-    default: "true"
+    default: "false"
     description: "Waits until deployment is successful, pods are running, etc. before marking the release as successful"
 
 outputs:

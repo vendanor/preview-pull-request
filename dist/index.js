@@ -917,7 +917,7 @@ const batman_1 = __nccwpck_require__(6921);
 const sticky_comment_1 = __nccwpck_require__(1788);
 const github_util_1 = __nccwpck_require__(2762);
 const utils_1 = __nccwpck_require__(3030);
-const parseComment_1 = __nccwpck_require__(4350);
+const parse_comment_1 = __nccwpck_require__(1048);
 const core_1 = __nccwpck_require__(2186);
 const setOutputFromResult = (result) => {
     if (result.previewUrl) {
@@ -930,6 +930,9 @@ const setOutputFromResult = (result) => {
         core.setOutput('helm-release-name', result.helmReleaseName);
     }
     core.setOutput('success', result.success);
+};
+const setNeutralOutput = () => {
+    core.setOutput('success', true);
 };
 // TODO: cancellation? cleanup?
 // https://docs.github.com/en/actions/managing-workflow-runs/canceling-a-workflow
@@ -970,7 +973,7 @@ function run() {
             wait: core.getInput('wait')
         };
         try {
-            core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
+            core.info('🕵 Running preview action 🕵️');
             core.info(batman_1.batman);
             const isCommentAction = utils_1.context.eventName === 'issue_comment';
             const isPullRequestAction = utils_1.context.eventName === 'pull_request';
@@ -980,78 +983,99 @@ function run() {
             core.info(`isComment: ${isCommentAction}`);
             core.info(`isPullRequest: ${isPullRequestAction}`);
             core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
-            core.info('actor' + utils_1.context.actor);
-            core.info('isBot' + isBot);
+            core.info('actor: ' + utils_1.context.actor);
+            core.info('isBot: ' + isBot);
+            // Debug:
             // const temp = JSON.stringify(context, null, 2);
             // core.info(temp);
             (0, common_1.validateOptions)(options);
             if (isCommentAction) {
-                const commentAction = (0, parseComment_1.parseComment)();
+                const commentAction = (0, parse_comment_1.parseComment)();
                 if (commentAction === 'add') {
-                    yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
-                    const result = yield (0, deploy_preview_1.deployPreview)(options);
-                    setOutputFromResult(result);
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
-                    // TODO: catch => failed?? how does cancel etc. work??
+                    try {
+                        yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
+                        const result = yield (0, deploy_preview_1.deployPreview)(options);
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, {
+                            completePreviewUrl: result.previewUrl
+                        });
+                        setOutputFromResult(result);
+                    }
+                    catch (err) {
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options, {
+                            errorMessage: err.message
+                        });
+                        (0, core_1.setFailed)(err.message);
+                    }
                 }
                 else if (commentAction === 'remove') {
-                    yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
-                    const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
-                    setOutputFromResult(result);
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
+                    try {
+                        yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
+                        const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
+                        setOutputFromResult(result);
+                    }
+                    catch (err) {
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options, {
+                            errorMessage: 'Failed to remove preview: ' + err.message
+                        });
+                        (0, core_1.setFailed)(err.message);
+                    }
                 }
             }
             else if (isPullRequestAction || isPullRequestTargetAction) {
-                // action: opened, synchronize, closed, reopened
-                // synchronize: Triggered when a pull request's head branch is updated.
-                // For example, when the head branch is updated from the base branch,
-                // when new commits are pushed to the head branch, or when the
-                // base branch is changed.
                 const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
                 core.info('isPreviewEnabled: ' + isPreviewEnabled);
+                // action: opened, synchronize, closed, reopened
                 if (utils_1.context.action === 'closed' && isPreviewEnabled) {
-                    // TODO: add NEW comment "Closing"?
-                    core.info('closed...');
-                    const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
-                    setOutputFromResult(result);
-                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
+                    try {
+                        const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
+                        setOutputFromResult(result);
+                    }
+                    catch (err) {
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options, {
+                            errorMessage: err.message
+                        });
+                        (0, core_1.setFailed)(err.message);
+                    }
                 }
                 else if (utils_1.context.payload.action === 'opened' ||
                     utils_1.context.payload.action === 'reopened') {
-                    core.info('opened or reopened, show welcome...');
-                    if (isPreviewEnabled) {
-                        // TODO: if we close and reopen, welcome message will show...
-                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
-                    }
-                    else {
-                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
-                    }
+                    core.info('opened or reopened PR, show welcome message');
+                    // TODO: if we close PR and reopen very quick we could get some strange results? Improve later?
+                    yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
+                    setNeutralOutput();
                 }
                 else if (utils_1.context.payload.action === 'synchronize') {
-                    core.info('synchronize');
                     if (isPreviewEnabled) {
-                        core.info('sync_enabled...');
+                        core.info('synchronize PR, updating preview');
                         try {
                             yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
                             const result = yield (0, deploy_preview_1.deployPreview)(options);
                             setOutputFromResult(result);
-                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, result.previewUrl);
+                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, {
+                                completePreviewUrl: result.previewUrl
+                            });
                         }
                         catch (err) {
-                            core.info('failed here test?');
-                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options);
-                            (0, core_1.setFailed)('Failed to deploy new preview');
+                            yield (0, sticky_comment_1.postOrUpdateGithubComment)('fail', options, {
+                                errorMessage: err.message
+                            });
+                            (0, core_1.setFailed)(err.message);
                         }
                     }
                     else {
-                        core.info('sync_disabled...skip...');
+                        core.info('synchronize PR, no preview to update');
+                        setNeutralOutput();
                     }
                 }
             }
             else {
                 core.info('unknown pr action: ' + utils_1.context.payload.action);
+                setNeutralOutput();
             }
+            // TODO: How to listen for cancelled? will it be catched?
             // if (options.cmd === 'deploy') {
             //
             //   const result = await deployPreview(options);
@@ -1100,7 +1124,7 @@ run();
 
 /***/ }),
 
-/***/ 4350:
+/***/ 1048:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -1401,13 +1425,13 @@ const common_1 = __nccwpck_require__(6979);
 const commands = `
 
 You can trigger preview-pull-request by commenting on this PR:  
-- \`preview add\` will deploy a preview 
-- \`preview remove\` will remove a preview
-
-Previews will be removed when you close the PR
+- \`@github-action add-preview\` will deploy a preview 
+- \`@github-action remove-preview\` will remove a preview
+- preview will be updated on new commits to PR
+- preview will be removed when the PR is closed
  
 `;
-function postOrUpdateGithubComment(type, options, completePreviewUrl) {
+function postOrUpdateGithubComment(type, options, content) {
     return __awaiter(this, void 0, void 0, function* () {
         const context = yield (0, github_util_1.getCurrentContext)();
         const sha7 = yield (0, github_util_1.getLatestCommitShortSha)(options.githubToken);
@@ -1425,6 +1449,10 @@ ${commands}
 ${(0, common_1.headerPreviewEnabled)(true)}
 ![vn](${img} "vn")
 🚨🚨 Preview :: Last job failed! 🚨🚨
+
+${(content === null || content === void 0 ? void 0 : content.errorMessage) && 'Error message:'}
+${content === null || content === void 0 ? void 0 : content.errorMessage}
+
 Your preview (${sha7}) is (not yet) available.
 ${commands}
   `,
@@ -1432,7 +1460,7 @@ ${commands}
 ${(0, common_1.headerPreviewEnabled)(true)}
 ![vn](${img} "vn")
 Your preview (${sha7}) is available here:
-<https://${completePreviewUrl}>
+<https://${content === null || content === void 0 ? void 0 : content.completePreviewUrl}>
 ${commands}
   `,
             removed: `

@@ -9,7 +9,7 @@ import {
   readIsPreviewEnabledFromComment
 } from './github-util';
 import { context } from '@actions/github/lib/utils';
-import { parseComment } from './parseComment';
+import { parseComment } from './parse-comment';
 import { setFailed } from '@actions/core';
 
 const setOutputFromResult = (result: CommandResult) => {
@@ -23,6 +23,10 @@ const setOutputFromResult = (result: CommandResult) => {
     core.setOutput('helm-release-name', result.helmReleaseName);
   }
   core.setOutput('success', result.success);
+};
+
+const setNeutralOutput = () => {
+  core.setOutput('success', true);
 };
 
 // TODO: cancellation? cleanup?
@@ -65,7 +69,7 @@ async function run(): Promise<void> {
   };
 
   try {
-    core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
+    core.info('🕵 Running preview action 🕵️');
     core.info(batman);
 
     const isCommentAction = context.eventName === 'issue_comment';
@@ -78,8 +82,10 @@ async function run(): Promise<void> {
     core.info(`isComment: ${isCommentAction}`);
     core.info(`isPullRequest: ${isPullRequestAction}`);
     core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
-    core.info('actor' + context.actor);
-    core.info('isBot' + isBot);
+    core.info('actor: ' + context.actor);
+    core.info('isBot: ' + isBot);
+
+    // Debug:
     // const temp = JSON.stringify(context, null, 2);
     // core.info(temp);
 
@@ -88,74 +94,86 @@ async function run(): Promise<void> {
     if (isCommentAction) {
       const commentAction = parseComment();
       if (commentAction === 'add') {
-        await addCommentReaction(options.githubToken, 'rocket');
-        await postOrUpdateGithubComment('brewing', options);
-        const result = await deployPreview(options);
-        setOutputFromResult(result);
-        await postOrUpdateGithubComment('success', options, result.previewUrl);
-
-        // TODO: catch => failed?? how does cancel etc. work??
+        try {
+          await addCommentReaction(options.githubToken, 'rocket');
+          await postOrUpdateGithubComment('brewing', options);
+          const result = await deployPreview(options);
+          await postOrUpdateGithubComment('success', options, {
+            completePreviewUrl: result.previewUrl
+          });
+          setOutputFromResult(result);
+        } catch (err: any) {
+          await postOrUpdateGithubComment('fail', options, {
+            errorMessage: err.message
+          });
+          setFailed(err.message);
+        }
       } else if (commentAction === 'remove') {
-        await addCommentReaction(options.githubToken, '+1');
-        const result = await removePreviewsForCurrentPullRequest(options);
-        setOutputFromResult(result);
-        await postOrUpdateGithubComment('removed', options);
+        try {
+          await addCommentReaction(options.githubToken, '+1');
+          const result = await removePreviewsForCurrentPullRequest(options);
+          await postOrUpdateGithubComment('removed', options);
+          setOutputFromResult(result);
+        } catch (err: any) {
+          await postOrUpdateGithubComment('fail', options, {
+            errorMessage: 'Failed to remove preview: ' + err.message
+          });
+          setFailed(err.message);
+        }
       }
     } else if (isPullRequestAction || isPullRequestTargetAction) {
-      // action: opened, synchronize, closed, reopened
-      // synchronize: Triggered when a pull request's head branch is updated.
-      // For example, when the head branch is updated from the base branch,
-      // when new commits are pushed to the head branch, or when the
-      // base branch is changed.
-
       const isPreviewEnabled = await readIsPreviewEnabledFromComment(
         options.githubToken
       );
       core.info('isPreviewEnabled: ' + isPreviewEnabled);
 
+      // action: opened, synchronize, closed, reopened
       if (context.action === 'closed' && isPreviewEnabled) {
-        // TODO: add NEW comment "Closing"?
-        core.info('closed...');
-        const result = await removePreviewsForCurrentPullRequest(options);
-        setOutputFromResult(result);
-        await postOrUpdateGithubComment('removed', options);
+        try {
+          const result = await removePreviewsForCurrentPullRequest(options);
+          await postOrUpdateGithubComment('removed', options);
+          setOutputFromResult(result);
+        } catch (err: any) {
+          await postOrUpdateGithubComment('fail', options, {
+            errorMessage: err.message
+          });
+          setFailed(err.message);
+        }
       } else if (
         context.payload.action === 'opened' ||
         context.payload.action === 'reopened'
       ) {
-        core.info('opened or reopened, show welcome...');
-        if (isPreviewEnabled) {
-          // TODO: if we close and reopen, welcome message will show...
-          await postOrUpdateGithubComment('welcome', options);
-        } else {
-          await postOrUpdateGithubComment('welcome', options);
-        }
+        core.info('opened or reopened PR, show welcome message');
+        // TODO: if we close PR and reopen very quick we could get some strange results? Improve later?
+        await postOrUpdateGithubComment('welcome', options);
+        setNeutralOutput();
       } else if (context.payload.action === 'synchronize') {
-        core.info('synchronize');
-
         if (isPreviewEnabled) {
-          core.info('sync_enabled...');
+          core.info('synchronize PR, updating preview');
           try {
             await postOrUpdateGithubComment('brewing', options);
             const result = await deployPreview(options);
             setOutputFromResult(result);
-            await postOrUpdateGithubComment(
-              'success',
-              options,
-              result.previewUrl
-            );
-          } catch (err) {
-            core.info('failed here test?');
-            await postOrUpdateGithubComment('fail', options);
-            setFailed('Failed to deploy new preview');
+            await postOrUpdateGithubComment('success', options, {
+              completePreviewUrl: result.previewUrl
+            });
+          } catch (err: any) {
+            await postOrUpdateGithubComment('fail', options, {
+              errorMessage: err.message
+            });
+            setFailed(err.message);
           }
         } else {
-          core.info('sync_disabled...skip...');
+          core.info('synchronize PR, no preview to update');
+          setNeutralOutput();
         }
       }
     } else {
       core.info('unknown pr action: ' + context.payload.action);
+      setNeutralOutput();
     }
+
+    // TODO: How to listen for cancelled? will it be catched?
 
     // if (options.cmd === 'deploy') {
     //
