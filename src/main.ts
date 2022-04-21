@@ -78,24 +78,38 @@ async function run(): Promise<void> {
       context.eventName === 'pull_request_target';
     const isBot = context.actor.toLowerCase().indexOf('bot') > -1;
     // TODO: skip ci?? Except for remove preview?
+    const isPreviewEnabled = await readIsPreviewEnabledFromComment(
+      options.githubToken
+    );
+    let isValidCommand = false;
+    if (isCommentAction) {
+      const commentAction = parseComment();
+      isValidCommand = !!commentAction;
+    }
 
-    core.info(`isComment: ${isCommentAction}`);
     core.info(`isPullRequest: ${isPullRequestAction}`);
     core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
     core.info('actor: ' + context.actor);
     core.info('isBot: ' + isBot);
+    core.info('isPreviewEnabled: ' + isPreviewEnabled);
+    core.info(`isComment: ${isCommentAction}`);
+    core.info('isValidCommand: ' + isValidCommand);
+
+    core.setOutput('isBot', isBot);
+    core.setOutput('isPreviewEnabled', isPreviewEnabled);
+    core.setOutput('isComment', isCommentAction);
+    core.setOutput('isValidCommand', isValidCommand);
 
     // Debug:
     // const temp = JSON.stringify(context, null, 2);
     // core.info(temp);
-
-    validateOptions(options);
 
     if (isCommentAction) {
       const commentAction = parseComment();
       if (commentAction === 'add-preview') {
         try {
           await addCommentReaction(options.githubToken, 'rocket');
+          validateOptions(options);
           await postOrUpdateGithubComment('brewing', options);
           const result = await deployPreview(options);
           await postOrUpdateGithubComment('success', options, {
@@ -111,6 +125,7 @@ async function run(): Promise<void> {
       } else if (commentAction === 'remove-preview') {
         try {
           await addCommentReaction(options.githubToken, '+1');
+          validateOptions(options);
           const result = await removePreviewsForCurrentPullRequest(options);
           await postOrUpdateGithubComment('removed', options);
           setOutputFromResult(result);
@@ -125,14 +140,10 @@ async function run(): Promise<void> {
         setNeutralOutput();
       }
     } else if (isPullRequestAction || isPullRequestTargetAction) {
-      const isPreviewEnabled = await readIsPreviewEnabledFromComment(
-        options.githubToken
-      );
-      core.info('isPreviewEnabled: ' + isPreviewEnabled);
-
       // action: opened, synchronize, closed, reopened
       if (context.action === 'closed' && isPreviewEnabled) {
         try {
+          validateOptions(options);
           const result = await removePreviewsForCurrentPullRequest(options);
           await postOrUpdateGithubComment('removed', options);
           setOutputFromResult(result);
@@ -154,6 +165,7 @@ async function run(): Promise<void> {
         if (isPreviewEnabled) {
           core.info('synchronize PR, updating preview');
           try {
+            validateOptions(options);
             await postOrUpdateGithubComment('brewing', options);
             const result = await deployPreview(options);
             setOutputFromResult(result);

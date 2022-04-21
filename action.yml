@@ -140,6 +140,14 @@ outputs:
     description: "Helm chart release version including tags (semver)"
   success:
     description: "was everything successful or not."
+  isPreviewEnabled:
+    description: "Returns true if user has requested a preview. Checks hidden value in comment"
+  isBot:
+    description: "Returns true if action was triggered by a bot"
+  isComment:
+    description: "Returns true if action was triggered by a comment"
+  isValidCommand:
+    description: "Returns true if comment contains a valid command"
 
 runs:
   using: 'node12'

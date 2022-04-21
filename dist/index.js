@@ -980,20 +980,32 @@ function run() {
             const isPullRequestTargetAction = utils_1.context.eventName === 'pull_request_target';
             const isBot = utils_1.context.actor.toLowerCase().indexOf('bot') > -1;
             // TODO: skip ci?? Except for remove preview?
-            core.info(`isComment: ${isCommentAction}`);
+            const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
+            let isValidCommand = false;
+            if (isCommentAction) {
+                const commentAction = (0, parse_comment_1.parseComment)();
+                isValidCommand = !!commentAction;
+            }
             core.info(`isPullRequest: ${isPullRequestAction}`);
             core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
             core.info('actor: ' + utils_1.context.actor);
             core.info('isBot: ' + isBot);
+            core.info('isPreviewEnabled: ' + isPreviewEnabled);
+            core.info(`isComment: ${isCommentAction}`);
+            core.info('isValidCommand: ' + isValidCommand);
+            core.setOutput('isBot', isBot);
+            core.setOutput('isPreviewEnabled', isPreviewEnabled);
+            core.setOutput('isComment', isCommentAction);
+            core.setOutput('isValidCommand', isValidCommand);
             // Debug:
             // const temp = JSON.stringify(context, null, 2);
             // core.info(temp);
-            (0, common_1.validateOptions)(options);
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 if (commentAction === 'add-preview') {
                     try {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
+                        (0, common_1.validateOptions)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
                         const result = yield (0, deploy_preview_1.deployPreview)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, {
@@ -1011,6 +1023,7 @@ function run() {
                 else if (commentAction === 'remove-preview') {
                     try {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
+                        (0, common_1.validateOptions)(options);
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
                         setOutputFromResult(result);
@@ -1028,11 +1041,10 @@ function run() {
                 }
             }
             else if (isPullRequestAction || isPullRequestTargetAction) {
-                const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
-                core.info('isPreviewEnabled: ' + isPreviewEnabled);
                 // action: opened, synchronize, closed, reopened
                 if (utils_1.context.action === 'closed' && isPreviewEnabled) {
                     try {
+                        (0, common_1.validateOptions)(options);
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
                         setOutputFromResult(result);
@@ -1055,6 +1067,7 @@ function run() {
                     if (isPreviewEnabled) {
                         core.info('synchronize PR, updating preview');
                         try {
+                            (0, common_1.validateOptions)(options);
                             yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
                             const result = yield (0, deploy_preview_1.deployPreview)(options);
                             setOutputFromResult(result);
