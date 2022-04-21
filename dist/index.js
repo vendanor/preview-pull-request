@@ -1014,7 +1014,7 @@ function run() {
             core.info('isPreviewPending: ' + isPreviewPending);
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isPreviewPending', isPreviewPending);
-            if (options.probe) {
+            if (options.probe.toLowerCase() === 'true') {
                 core.info('👀 probe done, returning');
                 setNeutralOutput();
                 return;

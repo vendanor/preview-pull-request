@@ -120,7 +120,7 @@ async function run(): Promise<void> {
     core.setOutput('isValidCommand', isValidCommand);
     core.setOutput('isPreviewPending', isPreviewPending);
 
-    if (options.probe) {
+    if (options.probe.toLowerCase() === 'true') {
       core.info('👀 probe done, returning');
       setNeutralOutput();
       return;
