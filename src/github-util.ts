@@ -37,10 +37,7 @@ export async function readIsPreviewEnabledFromComment(token: string) {
   );
 
   if (previewComment) {
-    // read status from comment..
-    core.info('found comment, read status..');
     if (previewComment.body) {
-      core.info(previewComment.body); // TODO: remove after debug..
       return previewComment.body.indexOf(headerPreviewEnabled(true)) > -1;
     }
   }

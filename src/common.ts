@@ -36,6 +36,7 @@ export interface Options {
   helmNamespace: string;
   appName: string;
   // cmd: Command | string;
+  probe: string;
 }
 
 export interface CommandResult {
@@ -109,7 +110,8 @@ const optionsDict: { [key in OptionKeys]: string } = {
   helmKeyAppName: 'helm-key-app-name',
   helmKeyPullSecret: 'helm-key-pullsecret',
   helmValues: 'helm-values',
-  wait: 'wait'
+  wait: 'wait',
+  probe: 'probe'
 };
 
 export function validateOptions(options: Options) {

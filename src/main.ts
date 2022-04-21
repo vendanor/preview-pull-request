@@ -65,11 +65,16 @@ async function run(): Promise<void> {
     clusterIssuer: core.getInput('cluster-issuer'),
     TlsSecretName: core.getInput('tls-secret-name'),
     helmValues: core.getInput('helm-values'),
-    wait: core.getInput('wait')
+    wait: core.getInput('wait'),
+    probe: core.getInput('probe')
   };
 
   try {
-    core.info('🕵 Running preview action 🕵️');
+    if (options.probe) {
+      core.info('👀 Running preview probe');
+    } else {
+      core.info('🕵 Running preview action');
+    }
     core.info(batman);
 
     const isCommentAction = context.eventName === 'issue_comment';
@@ -97,22 +102,29 @@ async function run(): Promise<void> {
     // const temp = JSON.stringify(context, null, 2);
     // core.info(temp);
     let isValidCommand = false;
-    let isPreviewPending = false;
+    let isPreviewPending: boolean;
 
     if (isCommentAction) {
       const commentAction = parseComment();
       isValidCommand = !!commentAction;
+      isPreviewPending = isCommentAction && commentAction === 'add-preview';
+    } else {
       isPreviewPending =
-        (isCommentAction && commentAction === 'add-preview') ||
-        (isPreviewEnabled &&
-          (isPullRequestAction || isPullRequestTargetAction) &&
-          context.payload.action === 'synchronize');
+        isPreviewEnabled &&
+        (isPullRequestAction || isPullRequestTargetAction) &&
+        context.payload.action === 'synchronize';
     }
 
     core.info('isValidCommand: ' + isValidCommand);
     core.info('isPreviewPending' + isPreviewPending);
     core.setOutput('isValidCommand', isValidCommand);
     core.setOutput('isPreviewPending', isPreviewPending);
+
+    if (options.probe) {
+      core.info('👀 probe done, returning');
+      setNeutralOutput();
+      return;
+    }
 
     if (isCommentAction) {
       const commentAction = parseComment();
@@ -198,41 +210,6 @@ async function run(): Promise<void> {
       core.info('unknown pr action: ' + context.payload.action);
       setNeutralOutput();
     }
-
-    // TODO: How to listen for cancelled? will it be catched?
-
-    // if (options.cmd === 'deploy') {
-    //
-    //   const result = await deployPreview(options);
-    //   setOutputFromResult(result);
-    //   await postOrUpdateGithubComment('success', options, result.previewUrl);
-    // } else if (options.cmd.startsWith('notify')) {
-    //   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
-    //   const hash = generateHash(pullRequestId, options.hashSalt);
-    //   const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
-    //   const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
-    //
-    //   let messageType: MessageType = 'welcome';
-    //   // if (options.cmd === 'notify-start') {
-    //   //   messageType = 'brewing';
-    //   // } else if (options.cmd === 'notify-cancelled') {
-    //   //   messageType = 'cancelled';
-    //   // } else if (options.cmd === 'notify-failed') {
-    //   //   messageType = 'fail';
-    //   // }
-    //
-    //   await postOrUpdateGithubComment(messageType, options, completePreviewUrl);
-    //   setOutputFromResult({
-    //     success: true
-    //   });
-    // } else if (options.cmd === 'remove') {
-    //   const result = await removePreviewsForCurrentPullRequest(options);
-    //   setOutputFromResult(result);
-    //   await postOrUpdateGithubComment('removed', options);
-    // } else {
-    //   throw new Error(`Command ${options.cmd} not supported`);
-    // }
-
     core.info('🍺 Done!');
   } catch (error: any) {
     await postOrUpdateGithubComment('fail', options);

@@ -64,7 +64,8 @@ const optionsDict = {
     helmKeyAppName: 'helm-key-app-name',
     helmKeyPullSecret: 'helm-key-pullsecret',
     helmValues: 'helm-values',
-    wait: 'wait'
+    wait: 'wait',
+    probe: 'probe'
 };
 function validateOptions(options) {
     const errorMessages = [];
@@ -467,10 +468,7 @@ function readIsPreviewEnabledFromComment(token) {
         const pullRequestId = yield (0, exports.getCurrentPullRequestId)(token);
         const previewComment = yield findPreviousComment(token, utils_1.context.repo, pullRequestId, common_1.stickyHeaderKey);
         if (previewComment) {
-            // read status from comment..
-            core.info('found comment, read status..');
             if (previewComment.body) {
-                core.info(previewComment.body); // TODO: remove after debug..
                 return previewComment.body.indexOf((0, common_1.headerPreviewEnabled)(true)) > -1;
             }
         }
@@ -970,10 +968,16 @@ function run() {
             clusterIssuer: core.getInput('cluster-issuer'),
             TlsSecretName: core.getInput('tls-secret-name'),
             helmValues: core.getInput('helm-values'),
-            wait: core.getInput('wait')
+            wait: core.getInput('wait'),
+            probe: core.getInput('probe')
         };
         try {
-            core.info('🕵 Running preview action 🕵️');
+            if (options.probe) {
+                core.info('👀 Running preview probe');
+            }
+            else {
+                core.info('🕵 Running preview action');
+            }
             core.info(batman_1.batman);
             const isCommentAction = utils_1.context.eventName === 'issue_comment';
             const isPullRequestAction = utils_1.context.eventName === 'pull_request';
@@ -994,20 +998,27 @@ function run() {
             // const temp = JSON.stringify(context, null, 2);
             // core.info(temp);
             let isValidCommand = false;
-            let isPreviewPending = false;
+            let isPreviewPending;
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 isValidCommand = !!commentAction;
+                isPreviewPending = isCommentAction && commentAction === 'add-preview';
+            }
+            else {
                 isPreviewPending =
-                    (isCommentAction && commentAction === 'add-preview') ||
-                        (isPreviewEnabled &&
-                            (isPullRequestAction || isPullRequestTargetAction) &&
-                            utils_1.context.payload.action === 'synchronize');
+                    isPreviewEnabled &&
+                        (isPullRequestAction || isPullRequestTargetAction) &&
+                        utils_1.context.payload.action === 'synchronize';
             }
             core.info('isValidCommand: ' + isValidCommand);
             core.info('isPreviewPending' + isPreviewPending);
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isPreviewPending', isPreviewPending);
+            if (options.probe) {
+                core.info('👀 probe done, returning');
+                setNeutralOutput();
+                return;
+            }
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 if (commentAction === 'add-preview') {
@@ -1100,38 +1111,6 @@ function run() {
                 core.info('unknown pr action: ' + utils_1.context.payload.action);
                 setNeutralOutput();
             }
-            // TODO: How to listen for cancelled? will it be catched?
-            // if (options.cmd === 'deploy') {
-            //
-            //   const result = await deployPreview(options);
-            //   setOutputFromResult(result);
-            //   await postOrUpdateGithubComment('success', options, result.previewUrl);
-            // } else if (options.cmd.startsWith('notify')) {
-            //   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
-            //   const hash = generateHash(pullRequestId, options.hashSalt);
-            //   const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
-            //   const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
-            //
-            //   let messageType: MessageType = 'welcome';
-            //   // if (options.cmd === 'notify-start') {
-            //   //   messageType = 'brewing';
-            //   // } else if (options.cmd === 'notify-cancelled') {
-            //   //   messageType = 'cancelled';
-            //   // } else if (options.cmd === 'notify-failed') {
-            //   //   messageType = 'fail';
-            //   // }
-            //
-            //   await postOrUpdateGithubComment(messageType, options, completePreviewUrl);
-            //   setOutputFromResult({
-            //     success: true
-            //   });
-            // } else if (options.cmd === 'remove') {
-            //   const result = await removePreviewsForCurrentPullRequest(options);
-            //   setOutputFromResult(result);
-            //   await postOrUpdateGithubComment('removed', options);
-            // } else {
-            //   throw new Error(`Command ${options.cmd} not supported`);
-            // }
             core.info('🍺 Done!');
         }
         catch (error) {

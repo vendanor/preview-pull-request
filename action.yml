@@ -11,6 +11,10 @@ inputs:
     description: "Your Github token"
     default: $
     required: true
+  probe:
+    description: "Set to true if you only want to probe for information"
+    default: "false"
+    required: false
   docker-file:
     required: false
     default: "Dockerfile"
