@@ -7,21 +7,34 @@ import {
   getLatestCommitShortSha,
   updateComment
 } from './github-util';
-import { Options } from './common';
+import { headerPreviewEnabled, Options, stickyHeaderKey } from './common';
 
 export type MessageType =
+  | 'welcome'
   | 'success'
   | 'fail'
   | 'removed'
   | 'brewing'
   | 'cancelled';
 
+const commands = `
+
+You can trigger preview-pull-request by commenting on this PR:  
+- \`@github-action add-preview\` will deploy a preview 
+- \`@github-action remove-preview\` will remove a preview
+- preview will be updated on new commits to PR
+- preview will be removed when the PR is closed
+ 
+`;
+
 export async function postOrUpdateGithubComment(
   type: MessageType,
   options: Options,
-  completePreviewUrl?: string
+  content?: {
+    completePreviewUrl?: string;
+    errorMessage?: string;
+  }
 ) {
-  const header = `VnKubePreview`;
   const context = await getCurrentContext();
   const sha7 = await getLatestCommitShortSha(options.githubToken);
   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
@@ -30,30 +43,49 @@ export async function postOrUpdateGithubComment(
   const img =
     'https://github.com/vendanor/preview-pull-request/blob/main/logo.png?raw=true';
   const messages: { [key in MessageType]: string } = {
+    welcome: `
+${headerPreviewEnabled(false)}
+![vn](${img} "vn")
+👷 Hello! Do you want to preview your stuff? 
+${commands}
+    `,
     fail: `
+${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 🚨🚨 Preview :: Last job failed! 🚨🚨
+
+${content?.errorMessage && 'Error message:'}
+${content?.errorMessage}
+
 Your preview (${sha7}) is (not yet) available.
+${commands}
   `,
     success: `
+${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 Your preview (${sha7}) is available here:
-<https://${completePreviewUrl}>
+<https://${content?.completePreviewUrl}>
+${commands}
   `,
     removed: `
+${headerPreviewEnabled(false)}
 ![vn](${img} "vn")
 All previews are uninstalled from Kubernetes.  
-Please re-open PR and commit one change if you want to generate a new preview.
+${commands}
   `,
     brewing: `
+${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 
 👷 A new version (${sha7}) is currently building..
+${commands}
     `,
     cancelled: `
+${headerPreviewEnabled(true)}
 ![vn](${img} "vn")
 🚨🚨 Preview :: Last job cancelled 🚨🚨
 Your preview (${sha7}) is (not yet) available.    
+${commands}
     `
   };
   const body = messages[type];
@@ -62,7 +94,7 @@ Your preview (${sha7}) is (not yet) available.
     options.githubToken,
     context.repo,
     pullRequestId,
-    header
+    stickyHeaderKey
   );
 
   if (previousComment) {
@@ -71,7 +103,7 @@ Your preview (${sha7}) is (not yet) available.
       context.repo,
       previousComment.id,
       body,
-      header
+      stickyHeaderKey
     );
   } else {
     await createComment(
@@ -79,7 +111,7 @@ Your preview (${sha7}) is (not yet) available.
       context.repo,
       pullRequestId,
       body,
-      header
+      stickyHeaderKey
     );
   }
 

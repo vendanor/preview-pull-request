@@ -1,5 +1,5 @@
-name: 'Preview Pull Requests in Azure Kubernetes Service'
-description: 'Deploy preview of Pull Requests to Azure Kubernetes Service using Helm charts'
+name: 'Preview Pull Requests in Kubernetes'
+description: 'Deploy preview of Pull Requests to Kubernetes using Helm charts'
 author: 'vendanor'
 
 branding:
@@ -7,15 +7,14 @@ branding:
   color: "orange"
 
 inputs:
-  command:
-    required: true
-    default: "deploy"
-    description: "Command to run, can be deploy, remove, notify, notify-start, notify-failed or notify-cancelled"
-
   token:
     description: "Your Github token"
     default: $
     required: true
+  probe:
+    description: "Set to true if you only want to probe for information"
+    default: "false"
+    required: false
   docker-file:
     required: false
     default: "Dockerfile"
@@ -133,7 +132,7 @@ inputs:
     description: "Extra values to pass to helm upgrade --set. Example: key1=val1,key2=val2"
   wait:
     required: false
-    default: "true"
+    default: "false"
     description: "Waits until deployment is successful, pods are running, etc. before marking the release as successful"
 
 outputs:
@@ -144,7 +143,19 @@ outputs:
   helmReleaseName:
     description: "Helm chart release version including tags (semver)"
   success:
-    description: "was everthing successful or not."
+    description: "was everything successful or not."
+  isPreviewEnabled:
+    description: "Returns true if user has requested a preview. Checks hidden value in comment"
+  isBot:
+    description: "Returns true if action was triggered by a bot"
+  isComment:
+    description: "Returns true if action was triggered by a comment"
+  isValidCommand:
+    description: "Returns true if comment contains a valid command"
+  isAddPreviewPending:
+    description: "Returns true if a preview will be deployed"
+  isRemovePreviewPending:
+    description: "Returns true if a preview will be removed"
 
 runs:
   using: 'node12'

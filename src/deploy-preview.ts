@@ -128,7 +128,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   }
 
   // Install or upgrade Helm preview release
-  core.info('Ready to deploy to AKS...');
+  core.info('Ready to deploy to Kubernetes...');
   const hash = generateHash(pullRequestId, options.hashSalt);
   const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
   const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
@@ -151,7 +151,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
     extraOverrides.forEach(value => overrides.push(value));
   }
   const extraCmds = [];
-  if (options.wait) {
+  if (options.wait.toLowerCase() === 'true') {
     extraCmds.push('--wait');
   }
 

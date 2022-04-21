@@ -2,10 +2,15 @@ import * as core from '@actions/core';
 import { CommandResult, Options, validateOptions } from './common';
 import { removePreviewsForCurrentPullRequest } from './remove-preview';
 import { deployPreview } from './deploy-preview';
-import { dilbert } from './dilbert';
-import { MessageType, postOrUpdateGithubComment } from './sticky-comment';
-import { getCurrentPullRequestId } from './github-util';
-import { generateHash } from './crypto-util';
+import { batman } from './batman';
+import { postOrUpdateGithubComment } from './sticky-comment';
+import {
+  addCommentReaction,
+  readIsPreviewEnabledFromComment
+} from './github-util';
+import { context } from '@actions/github/lib/utils';
+import { parseComment } from './parse-comment';
+import { setFailed } from '@actions/core';
 
 const setOutputFromResult = (result: CommandResult) => {
   if (result.previewUrl) {
@@ -20,9 +25,15 @@ const setOutputFromResult = (result: CommandResult) => {
   core.setOutput('success', result.success);
 };
 
+const setNeutralOutput = () => {
+  core.setOutput('success', true);
+};
+
+// TODO: cancellation? cleanup?
+// https://docs.github.com/en/actions/managing-workflow-runs/canceling-a-workflow
+
 async function run(): Promise<void> {
   const options: Options = {
-    cmd: core.getInput('command', { required: true }),
     appName: core.getInput('app-name'),
     helmNamespace: core.getInput('helm-namespace'),
     githubToken: core.getInput('token'),
@@ -54,66 +65,170 @@ async function run(): Promise<void> {
     clusterIssuer: core.getInput('cluster-issuer'),
     TlsSecretName: core.getInput('tls-secret-name'),
     helmValues: core.getInput('helm-values'),
-    wait: core.getInput('wait')
+    wait: core.getInput('wait'),
+    probe: core.getInput('probe')
   };
 
   try {
-    core.info('🕵️ Running Vendanor Kube Preview Action 🕵️');
-    core.info(dilbert);
-    if (options.cmd === 'deploy') {
-      validateOptions(options, 'deploy', [
-        'appName',
-        'dockerUsername',
-        'dockerPassword',
-        'dockerRegistry',
-        'dockerOrganization',
-        'githubToken',
-        'dockerTagMajor',
-        'helmTagMajor',
-        'helmChartFilePath',
-        'hashSalt'
-      ]);
-      const result = await deployPreview(options);
-      setOutputFromResult(result);
-      await postOrUpdateGithubComment('success', options, result.previewUrl);
-    } else if (options.cmd.startsWith('notify')) {
-      validateOptions(options, 'notify', [
-        'githubToken',
-        'hashSalt',
-        'appName',
-        'baseUrl'
-      ]);
-      const pullRequestId = await getCurrentPullRequestId(options.githubToken);
-      const hash = generateHash(pullRequestId, options.hashSalt);
-      const previewUrlIdentifier = `${options.appName}-${pullRequestId}-${hash}`;
-      const completePreviewUrl = `${previewUrlIdentifier}.${options.baseUrl}`;
-
-      let mytype: MessageType = 'brewing';
-      if (options.cmd === 'notify-start') {
-        mytype = 'brewing';
-      } else if (options.cmd === 'notify-cancelled') {
-        mytype = 'cancelled';
-      } else if (options.cmd === 'notify-failed') {
-        mytype = 'fail';
-      }
-
-      await postOrUpdateGithubComment(mytype, options, completePreviewUrl);
-      setOutputFromResult({
-        success: true
-      });
-    } else if (options.cmd === 'remove') {
-      validateOptions(options, 'remove', [
-        'githubToken',
-        'helmNamespace',
-        'appName'
-      ]);
-      const result = await removePreviewsForCurrentPullRequest(options);
-      setOutputFromResult(result);
-      await postOrUpdateGithubComment('removed', options);
+    if (options.probe.toLowerCase() === 'true') {
+      core.info('👀 Running preview probe');
     } else {
-      throw new Error(`Command ${options.cmd} not supported`);
+      core.info('🕵 Running preview action');
     }
-    core.info('🍺🍺🍺 GREAT SUCCESS - very nice 🍺🍺🍺');
+    core.info(batman);
+
+    const isCommentAction = context.eventName === 'issue_comment';
+    const isPullRequestAction = context.eventName === 'pull_request';
+    const isPullRequestTargetAction =
+      context.eventName === 'pull_request_target';
+    const isBot = context.actor.toLowerCase().indexOf('bot') > -1;
+    // TODO: skip ci?? Except for remove preview?
+    const isPreviewEnabled = await readIsPreviewEnabledFromComment(
+      options.githubToken
+    );
+
+    core.info(`isPullRequest: ${isPullRequestAction}`);
+    core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
+    core.info('actor: ' + context.actor);
+    core.info('isBot: ' + isBot);
+    core.info('isPreviewEnabled: ' + isPreviewEnabled);
+    core.info(`isComment: ${isCommentAction}`);
+
+    core.setOutput('isBot', isBot);
+    core.setOutput('isPreviewEnabled', isPreviewEnabled);
+    core.setOutput('isComment', isCommentAction);
+
+    let isValidCommand = false;
+
+    // True if a preview will be added on this run (unless probing)
+    let isAddPreviewPending: boolean;
+
+    // True if a preview will be removed on this run (unless probing)
+    const isRemovePreviewPending =
+      (isPullRequestAction || isPullRequestTargetAction) &&
+      context.payload.action === 'closed' &&
+      isPreviewEnabled;
+
+    if (isCommentAction) {
+      const commentAction = parseComment();
+      isValidCommand = !!commentAction;
+      isAddPreviewPending = isCommentAction && commentAction === 'add-preview';
+    } else {
+      isAddPreviewPending =
+        isPreviewEnabled &&
+        (isPullRequestAction || isPullRequestTargetAction) &&
+        context.payload.action === 'synchronize';
+    }
+
+    core.info('isValidCommand: ' + isValidCommand);
+    core.info('isAddPreviewPending: ' + isAddPreviewPending);
+    core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
+    core.setOutput('isValidCommand', isValidCommand);
+    core.setOutput('isAddPreviewPending', isAddPreviewPending);
+    core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
+
+    if (options.probe.toLowerCase() === 'true') {
+      core.info('👀 probe done, returning');
+      setNeutralOutput();
+      return;
+    }
+
+    if (isCommentAction) {
+      const commentAction = parseComment();
+
+      if (commentAction === 'add-preview') {
+        try {
+          await addCommentReaction(options.githubToken, 'rocket');
+          validateOptions(options);
+          await postOrUpdateGithubComment('brewing', options);
+          const result = await deployPreview(options);
+          await postOrUpdateGithubComment('success', options, {
+            completePreviewUrl: result.previewUrl
+          });
+          setOutputFromResult(result);
+        } catch (err: any) {
+          await postOrUpdateGithubComment('fail', options, {
+            errorMessage: err.message
+          });
+          setFailed(err.message);
+        }
+      } else if (commentAction === 'remove-preview') {
+        try {
+          await addCommentReaction(options.githubToken, '+1');
+          validateOptions(options);
+          const result = await removePreviewsForCurrentPullRequest(options);
+          await postOrUpdateGithubComment('removed', options);
+          setOutputFromResult(result);
+        } catch (err: any) {
+          await postOrUpdateGithubComment('fail', options, {
+            errorMessage: 'Failed to remove preview: ' + err.message
+          });
+          setFailed(err.message);
+        }
+      } else {
+        core.info('No commands found in comment');
+        setNeutralOutput();
+      }
+    } else if (isPullRequestAction || isPullRequestTargetAction) {
+      // action: opened, synchronize, closed, reopened
+      if (context.payload.action === 'closed') {
+        if (!isPreviewEnabled) {
+          core.info(
+            'PR closed, no previews, nothing to remove, nothing to do, going to bed 😴'
+          );
+          setNeutralOutput();
+          return;
+        }
+
+        try {
+          validateOptions(options);
+          const result = await removePreviewsForCurrentPullRequest(options);
+          await postOrUpdateGithubComment('removed', options);
+          setOutputFromResult(result);
+        } catch (err: any) {
+          await postOrUpdateGithubComment('fail', options, {
+            errorMessage: err.message
+          });
+          setFailed(err.message);
+        }
+      } else if (
+        context.payload.action === 'opened' ||
+        context.payload.action === 'reopened'
+      ) {
+        core.info('opened or reopened PR, show welcome message');
+        // TODO: if we close PR and reopen very quick we could get some strange results? Improve later?
+        await postOrUpdateGithubComment('welcome', options);
+        setNeutralOutput();
+      } else if (context.payload.action === 'synchronize') {
+        if (isPreviewEnabled) {
+          core.info('synchronize PR, updating preview');
+          try {
+            validateOptions(options);
+            await postOrUpdateGithubComment('brewing', options);
+            const result = await deployPreview(options);
+            setOutputFromResult(result);
+            await postOrUpdateGithubComment('success', options, {
+              completePreviewUrl: result.previewUrl
+            });
+          } catch (err: any) {
+            await postOrUpdateGithubComment('fail', options, {
+              errorMessage: err.message
+            });
+            setFailed(err.message);
+          }
+        } else {
+          core.info('synchronize PR, no preview to update');
+          setNeutralOutput();
+        }
+      } else {
+        core.info('unknown pr action: ' + context.payload.action);
+        setNeutralOutput();
+      }
+    } else {
+      core.info('unknown pr event: ' + context.eventName);
+      setNeutralOutput();
+    }
+    core.info('🍺 Done!');
   } catch (error: any) {
     await postOrUpdateGithubComment('fail', options);
     setOutputFromResult({
