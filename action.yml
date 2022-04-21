@@ -152,6 +152,10 @@ outputs:
     description: "Returns true if action was triggered by a comment"
   isValidCommand:
     description: "Returns true if comment contains a valid command"
+  isAddPreviewPending:
+    description: "Returns true if a preview will be deployed"
+  isRemovePreviewPending:
+    description: "Returns true if a preview will be removed"
 
 runs:
   using: 'node12'

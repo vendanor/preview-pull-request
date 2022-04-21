@@ -994,26 +994,28 @@ function run() {
             core.setOutput('isBot', isBot);
             core.setOutput('isPreviewEnabled', isPreviewEnabled);
             core.setOutput('isComment', isCommentAction);
-            // Debug:
-            // const temp = JSON.stringify(context, null, 2);
-            // core.info(temp);
             let isValidCommand = false;
-            let isPreviewPending;
+            // True if a preview will be added on this run (unless probing)
+            let isAddPreviewPending;
+            // True if a preview will be removed on this run (unless probing)
+            const isRemovePreviewPending = (isPullRequestAction || isPullRequestTargetAction) && utils_1.context.payload.action === 'closed' && isPreviewEnabled;
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 isValidCommand = !!commentAction;
-                isPreviewPending = isCommentAction && commentAction === 'add-preview';
+                isAddPreviewPending = isCommentAction && commentAction === 'add-preview';
             }
             else {
-                isPreviewPending =
+                isAddPreviewPending =
                     isPreviewEnabled &&
                         (isPullRequestAction || isPullRequestTargetAction) &&
                         utils_1.context.payload.action === 'synchronize';
             }
             core.info('isValidCommand: ' + isValidCommand);
-            core.info('isPreviewPending: ' + isPreviewPending);
+            core.info('isAddPreviewPending: ' + isAddPreviewPending);
+            core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
             core.setOutput('isValidCommand', isValidCommand);
-            core.setOutput('isPreviewPending', isPreviewPending);
+            core.setOutput('isAddPreviewPending', isAddPreviewPending);
+            core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
             if (options.probe.toLowerCase() === 'true') {
                 core.info('👀 probe done, returning');
                 setNeutralOutput();

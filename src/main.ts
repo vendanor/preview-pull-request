@@ -98,27 +98,34 @@ async function run(): Promise<void> {
     core.setOutput('isPreviewEnabled', isPreviewEnabled);
     core.setOutput('isComment', isCommentAction);
 
-    // Debug:
-    // const temp = JSON.stringify(context, null, 2);
-    // core.info(temp);
     let isValidCommand = false;
-    let isPreviewPending: boolean;
+
+    // True if a preview will be added on this run (unless probing)
+    let isAddPreviewPending: boolean;
+
+    // True if a preview will be removed on this run (unless probing)
+    const isRemovePreviewPending =
+      (isPullRequestAction || isPullRequestTargetAction) &&
+      context.payload.action === 'closed' &&
+      isPreviewEnabled;
 
     if (isCommentAction) {
       const commentAction = parseComment();
       isValidCommand = !!commentAction;
-      isPreviewPending = isCommentAction && commentAction === 'add-preview';
+      isAddPreviewPending = isCommentAction && commentAction === 'add-preview';
     } else {
-      isPreviewPending =
+      isAddPreviewPending =
         isPreviewEnabled &&
         (isPullRequestAction || isPullRequestTargetAction) &&
         context.payload.action === 'synchronize';
     }
 
     core.info('isValidCommand: ' + isValidCommand);
-    core.info('isPreviewPending: ' + isPreviewPending);
+    core.info('isAddPreviewPending: ' + isAddPreviewPending);
+    core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
     core.setOutput('isValidCommand', isValidCommand);
-    core.setOutput('isPreviewPending', isPreviewPending);
+    core.setOutput('isAddPreviewPending', isAddPreviewPending);
+    core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
 
     if (options.probe.toLowerCase() === 'true') {
       core.info('👀 probe done, returning');
