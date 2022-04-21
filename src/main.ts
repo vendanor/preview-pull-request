@@ -81,13 +81,6 @@ async function run(): Promise<void> {
     const isPreviewEnabled = await readIsPreviewEnabledFromComment(
       options.githubToken
     );
-    const commentAction = parseComment();
-    const isValidCommand = isCommentAction && !!commentAction;
-    const isPreviewPending =
-      (isCommentAction && commentAction === 'add-preview') ||
-      (isPreviewEnabled &&
-        (isPullRequestAction || isPullRequestTargetAction) &&
-        context.payload.action === 'synchronize');
 
     core.info(`isPullRequest: ${isPullRequestAction}`);
     core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
@@ -95,21 +88,35 @@ async function run(): Promise<void> {
     core.info('isBot: ' + isBot);
     core.info('isPreviewEnabled: ' + isPreviewEnabled);
     core.info(`isComment: ${isCommentAction}`);
-    core.info('isValidCommand: ' + isValidCommand);
-    core.info('isPreviewPending' + isPreviewPending);
 
     core.setOutput('isBot', isBot);
     core.setOutput('isPreviewEnabled', isPreviewEnabled);
     core.setOutput('isComment', isCommentAction);
-    core.setOutput('isValidCommand', isValidCommand);
-    core.setOutput('isPreviewPending', isPreviewPending);
 
     // Debug:
     // const temp = JSON.stringify(context, null, 2);
     // core.info(temp);
+    let isValidCommand = false;
+    let isPreviewPending = false;
 
     if (isCommentAction) {
       const commentAction = parseComment();
+      isValidCommand = !!commentAction;
+      isPreviewPending =
+        (isCommentAction && commentAction === 'add-preview') ||
+        (isPreviewEnabled &&
+          (isPullRequestAction || isPullRequestTargetAction) &&
+          context.payload.action === 'synchronize');
+    }
+
+    core.info('isValidCommand: ' + isValidCommand);
+    core.info('isPreviewPending' + isPreviewPending);
+    core.setOutput('isValidCommand', isValidCommand);
+    core.setOutput('isPreviewPending', isPreviewPending);
+
+    if (isCommentAction) {
+      const commentAction = parseComment();
+
       if (commentAction === 'add-preview') {
         try {
           await addCommentReaction(options.githubToken, 'rocket');
