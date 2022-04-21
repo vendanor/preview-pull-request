@@ -93,7 +93,7 @@ async function run(): Promise<void> {
 
     if (isCommentAction) {
       const commentAction = parseComment();
-      if (commentAction === 'add') {
+      if (commentAction === 'add-preview') {
         try {
           await addCommentReaction(options.githubToken, 'rocket');
           await postOrUpdateGithubComment('brewing', options);
@@ -108,7 +108,7 @@ async function run(): Promise<void> {
           });
           setFailed(err.message);
         }
-      } else if (commentAction === 'remove') {
+      } else if (commentAction === 'remove-preview') {
         try {
           await addCommentReaction(options.githubToken, '+1');
           const result = await removePreviewsForCurrentPullRequest(options);
@@ -120,6 +120,9 @@ async function run(): Promise<void> {
           });
           setFailed(err.message);
         }
+      } else {
+        core.info('No commands found in comment');
+        setNeutralOutput();
       }
     } else if (isPullRequestAction || isPullRequestTargetAction) {
       const isPreviewEnabled = await readIsPreviewEnabledFromComment(

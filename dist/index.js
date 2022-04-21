@@ -991,7 +991,7 @@ function run() {
             (0, common_1.validateOptions)(options);
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
-                if (commentAction === 'add') {
+                if (commentAction === 'add-preview') {
                     try {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
@@ -1008,7 +1008,7 @@ function run() {
                         (0, core_1.setFailed)(err.message);
                     }
                 }
-                else if (commentAction === 'remove') {
+                else if (commentAction === 'remove-preview') {
                     try {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
@@ -1021,6 +1021,10 @@ function run() {
                         });
                         (0, core_1.setFailed)(err.message);
                     }
+                }
+                else {
+                    core.info('No commands found in comment');
+                    setNeutralOutput();
                 }
             }
             else if (isPullRequestAction || isPullRequestTargetAction) {
@@ -1156,7 +1160,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
-const commentPrefix = 'preview';
+const commentPrefix = '@github-action';
 const parseComment = () => {
     const comment = utils_1.context.payload.comment.body;
     if (!comment.startsWith(commentPrefix)) {
@@ -1165,7 +1169,7 @@ const parseComment = () => {
     }
     else {
         const action = comment.replace(commentPrefix, '').trim();
-        if (action === 'add' || action === 'remove') {
+        if (action === 'add-preview' || action === 'remove-preview') {
             return action;
         }
         else {
