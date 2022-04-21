@@ -1065,7 +1065,12 @@ function run() {
             }
             else if (isPullRequestAction || isPullRequestTargetAction) {
                 // action: opened, synchronize, closed, reopened
-                if (utils_1.context.payload.action === 'closed' && isPreviewEnabled) {
+                if (utils_1.context.payload.action === 'closed') {
+                    if (!isPreviewEnabled) {
+                        core.info('PR closed, no previews, nothing to remove, nothing to do, going to bed 😴');
+                        setNeutralOutput();
+                        return;
+                    }
                     try {
                         (0, common_1.validateOptions)(options);
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
@@ -1177,7 +1182,7 @@ const parseComment = () => {
         return;
     }
     else {
-        const action = comment.replace(commentPrefix, '').trim();
+        const action = comment.toLowerCase().replace(commentPrefix, '').trim();
         if (action === 'add-preview' || action === 'remove-preview') {
             return action;
         }

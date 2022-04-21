@@ -171,7 +171,15 @@ async function run(): Promise<void> {
       }
     } else if (isPullRequestAction || isPullRequestTargetAction) {
       // action: opened, synchronize, closed, reopened
-      if (context.payload.action === 'closed' && isPreviewEnabled) {
+      if (context.payload.action === 'closed') {
+        if (!isPreviewEnabled) {
+          core.info(
+            'PR closed, no previews, nothing to remove, nothing to do, going to bed 😴'
+          );
+          setNeutralOutput();
+          return;
+        }
+
         try {
           validateOptions(options);
           const result = await removePreviewsForCurrentPullRequest(options);

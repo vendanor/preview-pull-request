@@ -12,7 +12,7 @@ export const parseComment = (): CommentAction | undefined => {
     core.info(comment);
     return;
   } else {
-    const action = comment.replace(commentPrefix, '').trim();
+    const action = comment.toLowerCase().replace(commentPrefix, '').trim();
     if (action === 'add-preview' || action === 'remove-preview') {
       return action;
     } else {
