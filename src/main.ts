@@ -164,7 +164,7 @@ async function run(): Promise<void> {
       }
     } else if (isPullRequestAction || isPullRequestTargetAction) {
       // action: opened, synchronize, closed, reopened
-      if (context.action === 'closed' && isPreviewEnabled) {
+      if (context.payload.action === 'closed' && isPreviewEnabled) {
         try {
           validateOptions(options);
           const result = await removePreviewsForCurrentPullRequest(options);
@@ -205,9 +205,12 @@ async function run(): Promise<void> {
           core.info('synchronize PR, no preview to update');
           setNeutralOutput();
         }
+      } else {
+        core.info('unknown pr action: ' + context.payload.action);
+        setNeutralOutput();
       }
     } else {
-      core.info('unknown pr action: ' + context.payload.action);
+      core.info('unknown pr event: ' + context.eventName);
       setNeutralOutput();
     }
     core.info('🍺 Done!');

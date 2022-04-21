@@ -1061,7 +1061,7 @@ function run() {
             }
             else if (isPullRequestAction || isPullRequestTargetAction) {
                 // action: opened, synchronize, closed, reopened
-                if (utils_1.context.action === 'closed' && isPreviewEnabled) {
+                if (utils_1.context.payload.action === 'closed' && isPreviewEnabled) {
                     try {
                         (0, common_1.validateOptions)(options);
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
@@ -1106,9 +1106,13 @@ function run() {
                         setNeutralOutput();
                     }
                 }
+                else {
+                    core.info('unknown pr action: ' + utils_1.context.payload.action);
+                    setNeutralOutput();
+                }
             }
             else {
-                core.info('unknown pr action: ' + utils_1.context.payload.action);
+                core.info('unknown pr event: ' + utils_1.context.eventName);
                 setNeutralOutput();
             }
             core.info('🍺 Done!');
