@@ -81,11 +81,13 @@ async function run(): Promise<void> {
     const isPreviewEnabled = await readIsPreviewEnabledFromComment(
       options.githubToken
     );
-    let isValidCommand = false;
-    if (isCommentAction) {
-      const commentAction = parseComment();
-      isValidCommand = !!commentAction;
-    }
+    const commentAction = parseComment();
+    const isValidCommand = isCommentAction && !!commentAction;
+    const isPreviewPending =
+      (isCommentAction && commentAction === 'add-preview') ||
+      (isPreviewEnabled &&
+        (isPullRequestAction || isPullRequestTargetAction) &&
+        context.payload.action === 'synchronize');
 
     core.info(`isPullRequest: ${isPullRequestAction}`);
     core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
@@ -94,11 +96,13 @@ async function run(): Promise<void> {
     core.info('isPreviewEnabled: ' + isPreviewEnabled);
     core.info(`isComment: ${isCommentAction}`);
     core.info('isValidCommand: ' + isValidCommand);
+    core.info('isPreviewPending' + isPreviewPending);
 
     core.setOutput('isBot', isBot);
     core.setOutput('isPreviewEnabled', isPreviewEnabled);
     core.setOutput('isComment', isCommentAction);
     core.setOutput('isValidCommand', isValidCommand);
+    core.setOutput('isPreviewPending', isPreviewPending);
 
     // Debug:
     // const temp = JSON.stringify(context, null, 2);
