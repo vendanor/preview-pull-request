@@ -1256,7 +1256,6 @@ const core = __importStar(__nccwpck_require__(2186));
 const run_cmd_1 = __nccwpck_require__(7537);
 const github_util_1 = __nccwpck_require__(2762);
 const axios_1 = __importDefault(__nccwpck_require__(6545));
-const utils_1 = __nccwpck_require__(3030);
 const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 0, void 0, function* () {
     const { appName, githubToken, helmNamespace, helmRemovePreviewCharts, helmRepoPassword, helmRepoUrl, helmRepoUsername } = options;
     const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(githubToken);
@@ -1326,35 +1325,38 @@ const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 
     else {
         core.info('Skip removing charts..');
     }
-    // TODO: remove docker images..
+    // TODO: remove docker images.. This is still not supported by ghcr.io ...
     // sample tag: 1.0.0-preview.68.30
-    try {
-        core.info('Searching for Preview Docker Images...');
-        const octokit = new utils_1.GitHub({
-            auth: githubToken
-        });
-        const result = yield octokit.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
-            package_type: 'container',
-            package_name: options.dockerImageName,
-            org: options.dockerOrganization,
-            state: 'active',
-            per_page: 100
-        });
-        core.info('result: ' + result.status);
-        result.data.forEach(c => {
-            var _a, _b, _c, _d;
-            core.info('package: ' + c.name);
-            (_b = (_a = c.metadata) === null || _a === void 0 ? void 0 : _a.container) === null || _b === void 0 ? void 0 : _b.tags.forEach(t => core.info('tag: ' + t));
-            const shouldRemove = (_d = (_c = c.metadata) === null || _c === void 0 ? void 0 : _c.container) === null || _d === void 0 ? void 0 : _d.tags.some(c => typeof c === 'string' && regexCurrentVersion.test(c));
-            core.info('shouldRemove: ' + shouldRemove);
-            core.info('---');
-        });
-        core.info('done');
-    }
-    catch (err) {
-        core.error('Failed to delete docker images');
-        core.error(err.message);
-    }
+    // try {
+    //   core.info('Searching for Preview Docker Images...');
+    //   const octokit = new GitHub({
+    //     auth: githubToken
+    //   });
+    //
+    //   const result =
+    //     await octokit.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
+    //       package_type: 'container',
+    //       package_name: options.dockerImageName,
+    //       org: options.dockerOrganization,
+    //       state: 'active',
+    //       per_page: 100
+    //     });
+    //   core.info('result: ' + result.status);
+    //   result.data.forEach(c => {
+    //     core.info('package: ' + c.name);
+    //     c.metadata?.container?.tags.forEach(t => core.info('tag: ' + t));
+    //     const shouldRemove = c.metadata?.container?.tags.some(
+    //       c => typeof c === 'string' && regexCurrentVersion.test(c)
+    //     );
+    //     core.info('shouldRemove: ' + shouldRemove);
+    //     core.info('---');
+    //   });
+    //
+    //   core.info('done');
+    // } catch (err: any) {
+    //   core.error('Failed to delete docker images');
+    //   core.error(err.message);
+    // }
     core.info(`All previews for app ${appName} deleted successfully!`);
     return {
         success: true
