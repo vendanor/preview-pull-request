@@ -135,6 +135,11 @@ export const removePreviewsForCurrentPullRequest = async (
     result.data.forEach(c => {
       core.info('package: ' + c.name);
       c.metadata?.container?.tags.forEach(t => core.info('tag: ' + t));
+      const shouldRemove = c.metadata?.container?.tags.some(
+        c => typeof c === 'string' && regexCurrentVersion.test(c)
+      );
+      core.info('shouldRemove: ' + shouldRemove);
+      core.info('---');
     });
 
     core.info('done');

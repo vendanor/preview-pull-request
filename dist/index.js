@@ -1338,9 +1338,12 @@ const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 
         });
         core.info('result: ' + result.status);
         result.data.forEach(c => {
-            var _a, _b;
+            var _a, _b, _c, _d;
             core.info('package: ' + c.name);
             (_b = (_a = c.metadata) === null || _a === void 0 ? void 0 : _a.container) === null || _b === void 0 ? void 0 : _b.tags.forEach(t => core.info('tag: ' + t));
+            const shouldRemove = (_d = (_c = c.metadata) === null || _c === void 0 ? void 0 : _c.container) === null || _d === void 0 ? void 0 : _d.tags.some(c => typeof c === 'string' && regexCurrentVersion.test(c));
+            core.info('shouldRemove: ' + shouldRemove);
+            core.info('---');
         });
         core.info('done');
     }
