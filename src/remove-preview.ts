@@ -3,13 +3,15 @@ import {
   CommandResult,
   HelmListResult,
   Options,
-  PREVIEW_TAG_PREFIX,
-  validateOptions
+  PREVIEW_TAG_PREFIX
 } from './common';
 import * as core from '@actions/core';
 import { runCmd } from './run-cmd';
 import { getCurrentPullRequestId } from './github-util';
 import axios from 'axios';
+import { GitHub } from '@actions/github/lib/utils';
+import { Octokit } from '@octokit/core';
+import { context } from '@actions/github';
 
 export const removePreviewsForCurrentPullRequest = async (
   options: Options
@@ -112,6 +114,39 @@ export const removePreviewsForCurrentPullRequest = async (
   } else {
     core.info('Skip removing charts..');
   }
+
+  // TODO: remove docker images.. This is still not supported by ghcr.io ...
+  // sample tag: 1.0.0-preview.68.30
+  // try {
+  //   core.info('Searching for Preview Docker Images...');
+  //   const octokit = new GitHub({
+  //     auth: githubToken
+  //   });
+  //
+  //   const result =
+  //     await octokit.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
+  //       package_type: 'container',
+  //       package_name: options.dockerImageName,
+  //       org: options.dockerOrganization,
+  //       state: 'active',
+  //       per_page: 100
+  //     });
+  //   core.info('result: ' + result.status);
+  //   result.data.forEach(c => {
+  //     core.info('package: ' + c.name);
+  //     c.metadata?.container?.tags.forEach(t => core.info('tag: ' + t));
+  //     const shouldRemove = c.metadata?.container?.tags.some(
+  //       c => typeof c === 'string' && regexCurrentVersion.test(c)
+  //     );
+  //     core.info('shouldRemove: ' + shouldRemove);
+  //     core.info('---');
+  //   });
+  //
+  //   core.info('done');
+  // } catch (err: any) {
+  //   core.error('Failed to delete docker images');
+  //   core.error(err.message);
+  // }
 
   core.info(`All previews for app ${appName} deleted successfully!`);
 

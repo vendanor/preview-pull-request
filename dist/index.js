@@ -574,6 +574,7 @@ const addCommentReaction = (token, content) => __awaiter(void 0, void 0, void 0,
         auth: token
     });
     try {
+        core.info('👀 Adding reaction to comment: ' + content);
         yield client.rest.reactions.createForIssueComment({
             comment_id: utils_1.context.payload.comment.id,
             content: content,
@@ -998,19 +999,22 @@ function run() {
             // True if a preview will be added on this run (unless probing)
             let isAddPreviewPending;
             // True if a preview will be removed on this run (unless probing)
-            const isRemovePreviewPending = (isPullRequestAction || isPullRequestTargetAction) &&
-                utils_1.context.payload.action === 'closed' &&
-                isPreviewEnabled;
+            let isRemovePreviewPending = false;
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 isValidCommand = !!commentAction;
-                isAddPreviewPending = isCommentAction && commentAction === 'add-preview';
+                isAddPreviewPending = commentAction === 'add-preview';
+                isRemovePreviewPending = commentAction === 'remove-preview';
             }
             else {
                 isAddPreviewPending =
                     isPreviewEnabled &&
                         (isPullRequestAction || isPullRequestTargetAction) &&
                         utils_1.context.payload.action === 'synchronize';
+                isRemovePreviewPending =
+                    (isPullRequestAction || isPullRequestTargetAction) &&
+                        utils_1.context.payload.action === 'closed' &&
+                        isPreviewEnabled;
             }
             core.info('isValidCommand: ' + isValidCommand);
             core.info('isAddPreviewPending: ' + isAddPreviewPending);
@@ -1019,6 +1023,16 @@ function run() {
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
             if (options.probe.toLowerCase() === 'true') {
+                if (isCommentAction) {
+                    core.info('👀 add early feedback on probing');
+                    if (isAddPreviewPending) {
+                        yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
+                    }
+                    else if (isRemovePreviewPending) {
+                        yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
+                    }
+                }
                 core.info('👀 probe done, returning');
                 setNeutralOutput();
                 return;
@@ -1027,9 +1041,9 @@ function run() {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 if (commentAction === 'add-preview') {
                     try {
-                        yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
+                        // await addCommentReaction(options.githubToken, 'rocket');
                         (0, common_1.validateOptions)(options);
-                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
+                        // await postOrUpdateGithubComment('brewing', options);
                         const result = yield (0, deploy_preview_1.deployPreview)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, {
                             completePreviewUrl: result.previewUrl
@@ -1045,7 +1059,7 @@ function run() {
                 }
                 else if (commentAction === 'remove-preview') {
                     try {
-                        yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
+                        // await addCommentReaction(options.githubToken, '+1');
                         (0, common_1.validateOptions)(options);
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
@@ -1064,7 +1078,6 @@ function run() {
                 }
             }
             else if (isPullRequestAction || isPullRequestTargetAction) {
-                // action: opened, synchronize, closed, reopened
                 if (utils_1.context.payload.action === 'closed') {
                     if (!isPreviewEnabled) {
                         core.info('PR closed, no previews, nothing to remove, nothing to do, going to bed 😴');
@@ -1312,6 +1325,38 @@ const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 
     else {
         core.info('Skip removing charts..');
     }
+    // TODO: remove docker images.. This is still not supported by ghcr.io ...
+    // sample tag: 1.0.0-preview.68.30
+    // try {
+    //   core.info('Searching for Preview Docker Images...');
+    //   const octokit = new GitHub({
+    //     auth: githubToken
+    //   });
+    //
+    //   const result =
+    //     await octokit.rest.packages.getAllPackageVersionsForPackageOwnedByOrg({
+    //       package_type: 'container',
+    //       package_name: options.dockerImageName,
+    //       org: options.dockerOrganization,
+    //       state: 'active',
+    //       per_page: 100
+    //     });
+    //   core.info('result: ' + result.status);
+    //   result.data.forEach(c => {
+    //     core.info('package: ' + c.name);
+    //     c.metadata?.container?.tags.forEach(t => core.info('tag: ' + t));
+    //     const shouldRemove = c.metadata?.container?.tags.some(
+    //       c => typeof c === 'string' && regexCurrentVersion.test(c)
+    //     );
+    //     core.info('shouldRemove: ' + shouldRemove);
+    //     core.info('---');
+    //   });
+    //
+    //   core.info('done');
+    // } catch (err: any) {
+    //   core.error('Failed to delete docker images');
+    //   core.error(err.message);
+    // }
     core.info(`All previews for app ${appName} deleted successfully!`);
     return {
         success: true
