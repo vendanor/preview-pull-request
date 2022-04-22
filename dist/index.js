@@ -574,6 +574,7 @@ const addCommentReaction = (token, content) => __awaiter(void 0, void 0, void 0,
         auth: token
     });
     try {
+        core.info('👀 Adding reaction to comment: ' + content);
         yield client.rest.reactions.createForIssueComment({
             comment_id: utils_1.context.payload.comment.id,
             content: content,
@@ -1019,6 +1020,15 @@ function run() {
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
             if (options.probe.toLowerCase() === 'true') {
+                if (isCommentAction) {
+                    if (isAddPreviewPending) {
+                        yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
+                    }
+                    else if (isRemovePreviewPending) {
+                        yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
+                    }
+                }
                 core.info('👀 probe done, returning');
                 setNeutralOutput();
                 return;
@@ -1027,9 +1037,9 @@ function run() {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 if (commentAction === 'add-preview') {
                     try {
-                        yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
+                        // await addCommentReaction(options.githubToken, 'rocket');
                         (0, common_1.validateOptions)(options);
-                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
+                        // await postOrUpdateGithubComment('brewing', options);
                         const result = yield (0, deploy_preview_1.deployPreview)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, {
                             completePreviewUrl: result.previewUrl
@@ -1045,7 +1055,7 @@ function run() {
                 }
                 else if (commentAction === 'remove-preview') {
                     try {
-                        yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
+                        // await addCommentReaction(options.githubToken, '+1');
                         (0, common_1.validateOptions)(options);
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
@@ -1064,7 +1074,6 @@ function run() {
                 }
             }
             else if (isPullRequestAction || isPullRequestTargetAction) {
-                // action: opened, synchronize, closed, reopened
                 if (utils_1.context.payload.action === 'closed') {
                     if (!isPreviewEnabled) {
                         core.info('PR closed, no previews, nothing to remove, nothing to do, going to bed 😴');

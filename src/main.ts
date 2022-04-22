@@ -128,6 +128,14 @@ async function run(): Promise<void> {
     core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
 
     if (options.probe.toLowerCase() === 'true') {
+      if (isCommentAction) {
+        if (isAddPreviewPending) {
+          await addCommentReaction(options.githubToken, 'rocket');
+          await postOrUpdateGithubComment('brewing', options);
+        } else if (isRemovePreviewPending) {
+          await addCommentReaction(options.githubToken, '+1');
+        }
+      }
       core.info('👀 probe done, returning');
       setNeutralOutput();
       return;
@@ -138,9 +146,9 @@ async function run(): Promise<void> {
 
       if (commentAction === 'add-preview') {
         try {
-          await addCommentReaction(options.githubToken, 'rocket');
+          // await addCommentReaction(options.githubToken, 'rocket');
           validateOptions(options);
-          await postOrUpdateGithubComment('brewing', options);
+          // await postOrUpdateGithubComment('brewing', options);
           const result = await deployPreview(options);
           await postOrUpdateGithubComment('success', options, {
             completePreviewUrl: result.previewUrl
@@ -154,7 +162,7 @@ async function run(): Promise<void> {
         }
       } else if (commentAction === 'remove-preview') {
         try {
-          await addCommentReaction(options.githubToken, '+1');
+          // await addCommentReaction(options.githubToken, '+1');
           validateOptions(options);
           const result = await removePreviewsForCurrentPullRequest(options);
           await postOrUpdateGithubComment('removed', options);
@@ -170,7 +178,6 @@ async function run(): Promise<void> {
         setNeutralOutput();
       }
     } else if (isPullRequestAction || isPullRequestTargetAction) {
-      // action: opened, synchronize, closed, reopened
       if (context.payload.action === 'closed') {
         if (!isPreviewEnabled) {
           core.info(

@@ -192,6 +192,7 @@ export const addCommentReaction = async (
   });
 
   try {
+    core.info('👀 Adding reaction to comment: ' + content);
     await client.rest.reactions.createForIssueComment({
       comment_id: (context.payload as any).comment.id,
       content: content,
