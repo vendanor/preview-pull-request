@@ -104,20 +104,22 @@ async function run(): Promise<void> {
     let isAddPreviewPending: boolean;
 
     // True if a preview will be removed on this run (unless probing)
-    const isRemovePreviewPending =
-      (isPullRequestAction || isPullRequestTargetAction) &&
-      context.payload.action === 'closed' &&
-      isPreviewEnabled;
+    let isRemovePreviewPending = false;
 
     if (isCommentAction) {
       const commentAction = parseComment();
       isValidCommand = !!commentAction;
-      isAddPreviewPending = isCommentAction && commentAction === 'add-preview';
+      isAddPreviewPending = commentAction === 'add-preview';
+      isRemovePreviewPending = commentAction === 'remove-preview';
     } else {
       isAddPreviewPending =
         isPreviewEnabled &&
         (isPullRequestAction || isPullRequestTargetAction) &&
         context.payload.action === 'synchronize';
+      isRemovePreviewPending =
+        (isPullRequestAction || isPullRequestTargetAction) &&
+        context.payload.action === 'closed' &&
+        isPreviewEnabled;
     }
 
     core.info('isValidCommand: ' + isValidCommand);
@@ -129,6 +131,7 @@ async function run(): Promise<void> {
 
     if (options.probe.toLowerCase() === 'true') {
       if (isCommentAction) {
+        core.info('👀 add early feedback on probing');
         if (isAddPreviewPending) {
           await addCommentReaction(options.githubToken, 'rocket');
           await postOrUpdateGithubComment('brewing', options);

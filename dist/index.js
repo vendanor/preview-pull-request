@@ -999,19 +999,22 @@ function run() {
             // True if a preview will be added on this run (unless probing)
             let isAddPreviewPending;
             // True if a preview will be removed on this run (unless probing)
-            const isRemovePreviewPending = (isPullRequestAction || isPullRequestTargetAction) &&
-                utils_1.context.payload.action === 'closed' &&
-                isPreviewEnabled;
+            let isRemovePreviewPending = false;
             if (isCommentAction) {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 isValidCommand = !!commentAction;
-                isAddPreviewPending = isCommentAction && commentAction === 'add-preview';
+                isAddPreviewPending = commentAction === 'add-preview';
+                isRemovePreviewPending = commentAction === 'remove-preview';
             }
             else {
                 isAddPreviewPending =
                     isPreviewEnabled &&
                         (isPullRequestAction || isPullRequestTargetAction) &&
                         utils_1.context.payload.action === 'synchronize';
+                isRemovePreviewPending =
+                    (isPullRequestAction || isPullRequestTargetAction) &&
+                        utils_1.context.payload.action === 'closed' &&
+                        isPreviewEnabled;
             }
             core.info('isValidCommand: ' + isValidCommand);
             core.info('isAddPreviewPending: ' + isAddPreviewPending);
@@ -1021,6 +1024,7 @@ function run() {
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
             if (options.probe.toLowerCase() === 'true') {
                 if (isCommentAction) {
+                    core.info('👀 add early feedback on probing');
                     if (isAddPreviewPending) {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
