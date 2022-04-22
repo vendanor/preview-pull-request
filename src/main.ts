@@ -93,7 +93,7 @@ async function run(): Promise<void> {
     core.setOutput('isBot', isBot);
     core.setOutput('isComment', isCommentAction);
 
-    if (!isBot) {
+    if (isBot) {
       core.info(
         `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
       );

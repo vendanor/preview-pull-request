@@ -992,7 +992,7 @@ function run() {
             core.info(`isComment: ${isCommentAction}`);
             core.setOutput('isBot', isBot);
             core.setOutput('isComment', isCommentAction);
-            if (!isBot) {
+            if (isBot) {
                 core.info(`Hello 🤖 ${utils_1.context.actor}, you are not allowed to proceed, good bye!`);
                 setNeutralOutput();
                 return;
