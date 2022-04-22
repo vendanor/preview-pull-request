@@ -6,6 +6,8 @@ import { batman } from './batman';
 import { postOrUpdateGithubComment } from './sticky-comment';
 import {
   addCommentReaction,
+  getBase,
+  getCurrentPullRequestId,
   readIsPreviewEnabledFromComment
 } from './github-util';
 import { context } from '@actions/github/lib/utils';
@@ -82,21 +84,41 @@ async function run(): Promise<void> {
     const isPullRequestTargetAction =
       context.eventName === 'pull_request_target';
     const isBot = context.actor.toLowerCase().indexOf('bot') > -1;
-    // TODO: skip ci?? Except for remove preview?
-    const isPreviewEnabled = await readIsPreviewEnabledFromComment(
-      options.githubToken
-    );
 
     core.info(`isPullRequest: ${isPullRequestAction}`);
     core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
     core.info('actor: ' + context.actor);
     core.info('isBot: ' + isBot);
-    core.info('isPreviewEnabled: ' + isPreviewEnabled);
     core.info(`isComment: ${isCommentAction}`);
-
     core.setOutput('isBot', isBot);
-    core.setOutput('isPreviewEnabled', isPreviewEnabled);
     core.setOutput('isComment', isCommentAction);
+
+    if (!isBot) {
+      core.info(
+        `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
+      );
+      setNeutralOutput();
+      return;
+    }
+
+    try {
+      core.info('checking for skip ci...');
+      //     if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'skip ci')
+      const prId = await getCurrentPullRequestId(options.githubToken);
+      const base = await getBase(options.githubToken, prId);
+      const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
+      core.info('skipCi1: ' + isSkipCi);
+      core.info(JSON.stringify(context, null, 2));
+    } catch (err: any) {
+      core.info(err.message);
+    }
+
+    const isPreviewEnabled = await readIsPreviewEnabledFromComment(
+      options.githubToken
+    );
+
+    core.info('isPreviewEnabled: ' + isPreviewEnabled);
+    core.setOutput('isPreviewEnabled', isPreviewEnabled);
 
     let isValidCommand = false;
 
@@ -201,14 +223,18 @@ async function run(): Promise<void> {
           });
           setFailed(err.message);
         }
-      } else if (
-        context.payload.action === 'opened' ||
-        context.payload.action === 'reopened'
-      ) {
+      } else if (context.payload.action === 'opened') {
         core.info('opened or reopened PR, show welcome message');
         // TODO: if we close PR and reopen very quick we could get some strange results? Improve later?
         await postOrUpdateGithubComment('welcome', options);
         setNeutralOutput();
+      } else if (context.payload.action === 'reopened') {
+        // TODO: check if comment, if NOT, post welcome
+        // TODO: if isBot, dont bother building, deploying, etc.. ABORT early...
+        if (!isPreviewEnabled) {
+          await postOrUpdateGithubComment('welcome', options);
+          setNeutralOutput();
+        }
       } else if (context.payload.action === 'synchronize') {
         if (isPreviewEnabled) {
           core.info('synchronize PR, updating preview');

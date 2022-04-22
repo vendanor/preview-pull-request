@@ -526,7 +526,8 @@ const getBase = (token, prId) => __awaiter(void 0, void 0, void 0, function* () 
     });
     return {
         ref: pr.data.base.ref,
-        sha: pr.data.base.sha
+        sha: pr.data.base.sha,
+        body: pr.data.body
     };
 });
 exports.getBase = getBase;
@@ -984,17 +985,33 @@ function run() {
             const isPullRequestAction = utils_1.context.eventName === 'pull_request';
             const isPullRequestTargetAction = utils_1.context.eventName === 'pull_request_target';
             const isBot = utils_1.context.actor.toLowerCase().indexOf('bot') > -1;
-            // TODO: skip ci?? Except for remove preview?
-            const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
             core.info(`isPullRequest: ${isPullRequestAction}`);
             core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
             core.info('actor: ' + utils_1.context.actor);
             core.info('isBot: ' + isBot);
-            core.info('isPreviewEnabled: ' + isPreviewEnabled);
             core.info(`isComment: ${isCommentAction}`);
             core.setOutput('isBot', isBot);
-            core.setOutput('isPreviewEnabled', isPreviewEnabled);
             core.setOutput('isComment', isCommentAction);
+            if (!isBot) {
+                core.info(`Hello 🤖 ${utils_1.context.actor}, you are not allowed to proceed, good bye!`);
+                setNeutralOutput();
+                return;
+            }
+            try {
+                core.info('checking for skip ci...');
+                //     if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'skip ci')
+                const prId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
+                const base = yield (0, github_util_1.getBase)(options.githubToken, prId);
+                const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
+                core.info('skipCi1: ' + isSkipCi);
+                core.info(JSON.stringify(utils_1.context, null, 2));
+            }
+            catch (err) {
+                core.info(err.message);
+            }
+            const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
+            core.info('isPreviewEnabled: ' + isPreviewEnabled);
+            core.setOutput('isPreviewEnabled', isPreviewEnabled);
             let isValidCommand = false;
             // True if a preview will be added on this run (unless probing)
             let isAddPreviewPending;
@@ -1097,12 +1114,19 @@ function run() {
                         (0, core_1.setFailed)(err.message);
                     }
                 }
-                else if (utils_1.context.payload.action === 'opened' ||
-                    utils_1.context.payload.action === 'reopened') {
+                else if (utils_1.context.payload.action === 'opened') {
                     core.info('opened or reopened PR, show welcome message');
                     // TODO: if we close PR and reopen very quick we could get some strange results? Improve later?
                     yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
                     setNeutralOutput();
+                }
+                else if (utils_1.context.payload.action === 'reopened') {
+                    // TODO: check if comment, if NOT, post welcome
+                    // TODO: if isBot, dont bother building, deploying, etc.. ABORT early...
+                    if (!isPreviewEnabled) {
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
+                        setNeutralOutput();
+                    }
                 }
                 else if (utils_1.context.payload.action === 'synchronize') {
                     if (isPreviewEnabled) {
@@ -1354,7 +1378,7 @@ const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 
     //
     //   core.info('done');
     // } catch (err: any) {
-    //   core.error('Failed to delete docker images');
+    //   core.error('Failed to delete d ocker images');
     //   core.error(err.message);
     // }
     core.info(`All previews for app ${appName} deleted successfully!`);

@@ -112,7 +112,7 @@ export const getCurrentContext = async (): Promise<Context> => {
 export const getBase = async (
   token: string,
   prId: number
-): Promise<{ ref: string; sha: string }> => {
+): Promise<{ ref: string; sha: string; body: string | null }> => {
   const client = new GitHub({
     auth: token
   });
@@ -125,7 +125,8 @@ export const getBase = async (
 
   return {
     ref: pr.data.base.ref,
-    sha: pr.data.base.sha
+    sha: pr.data.base.sha,
+    body: pr.data.body
   };
 };
 
