@@ -8,6 +8,7 @@ import {
   addCommentReaction,
   getBase,
   getCurrentPullRequestId,
+  getLatestCommitMessage,
   readIsPreviewEnabledFromComment
 } from './github-util';
 import { context } from '@actions/github/lib/utils';
@@ -143,17 +144,21 @@ async function run(): Promise<void> {
     try {
       core.info('checking for skip ci...');
       //     if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'skip ci')
-      const prId = await getCurrentPullRequestId(options.githubToken);
-      const base = await getBase(options.githubToken, prId);
-      const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
-      core.info('skipCi1: ' + isSkipCi);
-      if (base.body) core.info(base.body);
-      // core.info(JSON.stringify(context, null, 2));
-      const res = await runCmd('git log -1 --pretty=%B');
-      core.info(res.output);
-      const skipCi2 =
-        res && res.output && res.output.toLowerCase().indexOf('skip ci') > -1;
-      core.info('skip ci 2: ' + skipCi2);
+      // const prId = await getCurrentPullRequestId(options.githubToken);
+      // const base = await getBase(options.githubToken, prId);
+      // const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
+      // core.info('skipCi1: ' + isSkipCi);
+      // if (base.body) core.info(base.body);
+      // // core.info(JSON.stringify(context, null, 2));
+      // const res = await runCmd('git log -1 --pretty=%B');
+      // core.info(res.output);
+      // const skipCi2 =
+      //   res && res.output && res.output.toLowerCase().indexOf('skip ci') > -1;
+      // core.info('skip ci 2: ' + skipCi2);
+      const msg = await getLatestCommitMessage(options.githubToken);
+      const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
+      if (msg) core.info(msg);
+      else core.info('no msg');
 
       if (isAddPreviewPending && skipCi2) {
         core.info('skip ci!');

@@ -448,7 +448,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getLatestCommitShortSha = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
+exports.getLatestCommitMessage = exports.getLatestCommitShortSha = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
 const common_1 = __nccwpck_require__(6979);
@@ -625,6 +625,42 @@ const getLatestCommitShortSha = (token) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.getLatestCommitShortSha = getLatestCommitShortSha;
+const getLatestCommitMessage = (token) => __awaiter(void 0, void 0, void 0, function* () {
+    const client = new utils_1.GitHub({
+        auth: token
+    });
+    const prId = yield (0, exports.getCurrentPullRequestId)(token);
+    core.info(`Finding last commit message for PR ${prId}, repoOwner ${utils_1.context.repo.owner} repoName ${utils_1.context.repo.repo}`);
+    let pageNumber = 1;
+    let totalCount = 0;
+    let lastCommit;
+    while (true) {
+        const result = yield client.rest.pulls.listCommits({
+            owner: utils_1.context.repo.owner,
+            repo: utils_1.context.repo.repo,
+            pull_number: prId,
+            per_page: 100,
+            page: pageNumber
+        });
+        const length = result.data.length;
+        if (length < 1) {
+            break;
+        }
+        else {
+            totalCount += length;
+            lastCommit = result.data[length - 1];
+        }
+        if (length < 100) {
+            break;
+        }
+        pageNumber++;
+    }
+    if (!!lastCommit) {
+        core.info(`Found ${totalCount} commits on PR ${prId}. Last commit message: ${lastCommit.commit.message}`);
+        return lastCommit.commit.message;
+    }
+});
+exports.getLatestCommitMessage = getLatestCommitMessage;
 
 
 /***/ }),
@@ -919,7 +955,6 @@ const github_util_1 = __nccwpck_require__(2762);
 const utils_1 = __nccwpck_require__(3030);
 const parse_comment_1 = __nccwpck_require__(1048);
 const core_1 = __nccwpck_require__(2186);
-const run_cmd_1 = __nccwpck_require__(7537);
 const setOutputFromResult = (result) => {
     if (result.previewUrl) {
         core.setOutput('preview-url', result.previewUrl);
@@ -1031,17 +1066,23 @@ function run() {
             try {
                 core.info('checking for skip ci...');
                 //     if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'skip ci')
-                const prId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
-                const base = yield (0, github_util_1.getBase)(options.githubToken, prId);
-                const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
-                core.info('skipCi1: ' + isSkipCi);
-                if (base.body)
-                    core.info(base.body);
-                // core.info(JSON.stringify(context, null, 2));
-                const res = yield (0, run_cmd_1.runCmd)('git log -1 --pretty=%B');
-                core.info(res.output);
-                const skipCi2 = res && res.output && res.output.toLowerCase().indexOf('skip ci') > -1;
-                core.info('skip ci 2: ' + skipCi2);
+                // const prId = await getCurrentPullRequestId(options.githubToken);
+                // const base = await getBase(options.githubToken, prId);
+                // const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
+                // core.info('skipCi1: ' + isSkipCi);
+                // if (base.body) core.info(base.body);
+                // // core.info(JSON.stringify(context, null, 2));
+                // const res = await runCmd('git log -1 --pretty=%B');
+                // core.info(res.output);
+                // const skipCi2 =
+                //   res && res.output && res.output.toLowerCase().indexOf('skip ci') > -1;
+                // core.info('skip ci 2: ' + skipCi2);
+                const msg = yield (0, github_util_1.getLatestCommitMessage)(options.githubToken);
+                const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
+                if (msg)
+                    core.info(msg);
+                else
+                    core.info('no msg');
                 if (isAddPreviewPending && skipCi2) {
                     core.info('skip ci!');
                     setNeutralOutput();

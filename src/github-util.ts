@@ -254,3 +254,49 @@ export const getLatestCommitShortSha = async (token: string) => {
     return lastCommit.sha.substring(0, 7);
   }
 };
+
+export const getLatestCommitMessage = async (token: string) => {
+  const client = new GitHub({
+    auth: token
+  });
+
+  const prId = await getCurrentPullRequestId(token);
+
+  core.info(
+    `Finding last commit message for PR ${prId}, repoOwner ${context.repo.owner} repoName ${context.repo.repo}`
+  );
+
+  let pageNumber = 1;
+  let totalCount = 0;
+  let lastCommit;
+
+  while (true) {
+    const result = await client.rest.pulls.listCommits({
+      owner: context.repo.owner,
+      repo: context.repo.repo,
+      pull_number: prId,
+      per_page: 100,
+      page: pageNumber
+    });
+
+    const length = result.data.length;
+    if (length < 1) {
+      break;
+    } else {
+      totalCount += length;
+      lastCommit = result.data[length - 1];
+    }
+
+    if (length < 100) {
+      break;
+    }
+    pageNumber++;
+  }
+
+  if (!!lastCommit) {
+    core.info(
+      `Found ${totalCount} commits on PR ${prId}. Last commit message: ${lastCommit.commit.message}`
+    );
+    return lastCommit.commit.message;
+  }
+};
