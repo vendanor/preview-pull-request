@@ -532,7 +532,7 @@ const getBase = (token, prId) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.getBase = getBase;
 const getCurrentPullRequestId = (token) => __awaiter(void 0, void 0, void 0, function* () {
-    core.info('Getting current pull request id...');
+    // core.info('Getting current pull request id...');
     const client = new utils_1.GitHub({
         auth: token
     });
@@ -1065,18 +1065,6 @@ function run() {
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
             try {
                 core.info('checking for skip ci...');
-                //     if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'skip ci')
-                // const prId = await getCurrentPullRequestId(options.githubToken);
-                // const base = await getBase(options.githubToken, prId);
-                // const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
-                // core.info('skipCi1: ' + isSkipCi);
-                // if (base.body) core.info(base.body);
-                // // core.info(JSON.stringify(context, null, 2));
-                // const res = await runCmd('git log -1 --pretty=%B');
-                // core.info(res.output);
-                // const skipCi2 =
-                //   res && res.output && res.output.toLowerCase().indexOf('skip ci') > -1;
-                // core.info('skip ci 2: ' + skipCi2);
                 const msg = yield (0, github_util_1.getLatestCommitMessage)(options.githubToken);
                 const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
                 if (msg)
@@ -1084,8 +1072,9 @@ function run() {
                 else
                     core.info('no msg');
                 if (isAddPreviewPending && skipCi2) {
-                    core.info('skip ci!');
+                    core.info('skip ci detected, setting isAddPreviewPending to false');
                     setNeutralOutput();
+                    core.setOutput('isAddPreviewPending', false);
                     return;
                 }
             }
