@@ -448,7 +448,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getLatestCommitShortSha = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
+exports.getLatestCommitMessage = exports.getLatestCommitShortSha = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
 const common_1 = __nccwpck_require__(6979);
@@ -526,12 +526,13 @@ const getBase = (token, prId) => __awaiter(void 0, void 0, void 0, function* () 
     });
     return {
         ref: pr.data.base.ref,
-        sha: pr.data.base.sha
+        sha: pr.data.base.sha,
+        body: pr.data.body
     };
 });
 exports.getBase = getBase;
 const getCurrentPullRequestId = (token) => __awaiter(void 0, void 0, void 0, function* () {
-    core.info('Getting current pull request id...');
+    // core.info('Getting current pull request id...');
     const client = new utils_1.GitHub({
         auth: token
     });
@@ -624,6 +625,42 @@ const getLatestCommitShortSha = (token) => __awaiter(void 0, void 0, void 0, fun
     }
 });
 exports.getLatestCommitShortSha = getLatestCommitShortSha;
+const getLatestCommitMessage = (token) => __awaiter(void 0, void 0, void 0, function* () {
+    const client = new utils_1.GitHub({
+        auth: token
+    });
+    const prId = yield (0, exports.getCurrentPullRequestId)(token);
+    core.info(`Finding last commit message for PR ${prId}, repoOwner ${utils_1.context.repo.owner} repoName ${utils_1.context.repo.repo}`);
+    let pageNumber = 1;
+    let totalCount = 0;
+    let lastCommit;
+    while (true) {
+        const result = yield client.rest.pulls.listCommits({
+            owner: utils_1.context.repo.owner,
+            repo: utils_1.context.repo.repo,
+            pull_number: prId,
+            per_page: 100,
+            page: pageNumber
+        });
+        const length = result.data.length;
+        if (length < 1) {
+            break;
+        }
+        else {
+            totalCount += length;
+            lastCommit = result.data[length - 1];
+        }
+        if (length < 100) {
+            break;
+        }
+        pageNumber++;
+    }
+    if (!!lastCommit) {
+        core.info(`Found ${totalCount} commits on PR ${prId}. Last commit message: ${lastCommit.commit.message}`);
+        return lastCommit.commit.message;
+    }
+});
+exports.getLatestCommitMessage = getLatestCommitMessage;
 
 
 /***/ }),
@@ -984,17 +1021,21 @@ function run() {
             const isPullRequestAction = utils_1.context.eventName === 'pull_request';
             const isPullRequestTargetAction = utils_1.context.eventName === 'pull_request_target';
             const isBot = utils_1.context.actor.toLowerCase().indexOf('bot') > -1;
-            // TODO: skip ci?? Except for remove preview?
-            const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
             core.info(`isPullRequest: ${isPullRequestAction}`);
             core.info(`isPullRequestTarget: ${isPullRequestTargetAction}`);
             core.info('actor: ' + utils_1.context.actor);
             core.info('isBot: ' + isBot);
-            core.info('isPreviewEnabled: ' + isPreviewEnabled);
             core.info(`isComment: ${isCommentAction}`);
             core.setOutput('isBot', isBot);
-            core.setOutput('isPreviewEnabled', isPreviewEnabled);
             core.setOutput('isComment', isCommentAction);
+            if (isBot) {
+                core.info(`Hello 🤖 ${utils_1.context.actor}, you are not allowed to proceed, good bye!`);
+                setNeutralOutput();
+                return;
+            }
+            const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
+            core.info('isPreviewEnabled: ' + isPreviewEnabled);
+            core.setOutput('isPreviewEnabled', isPreviewEnabled);
             let isValidCommand = false;
             // True if a preview will be added on this run (unless probing)
             let isAddPreviewPending;
@@ -1022,6 +1063,24 @@ function run() {
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
+            try {
+                core.info('checking for skip ci...');
+                const msg = yield (0, github_util_1.getLatestCommitMessage)(options.githubToken);
+                const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
+                if (msg)
+                    core.info(msg);
+                else
+                    core.info('no msg');
+                if (isAddPreviewPending && skipCi2) {
+                    core.info('skip ci detected, setting isAddPreviewPending to false');
+                    setNeutralOutput();
+                    core.setOutput('isAddPreviewPending', false);
+                    return;
+                }
+            }
+            catch (err) {
+                core.info(err.message);
+            }
             if (options.probe.toLowerCase() === 'true') {
                 if (isCommentAction) {
                     core.info('👀 add early feedback on probing');
@@ -1097,12 +1156,19 @@ function run() {
                         (0, core_1.setFailed)(err.message);
                     }
                 }
-                else if (utils_1.context.payload.action === 'opened' ||
-                    utils_1.context.payload.action === 'reopened') {
-                    core.info('opened or reopened PR, show welcome message');
+                else if (utils_1.context.payload.action === 'opened') {
+                    core.info('opened PR, show welcome message');
                     // TODO: if we close PR and reopen very quick we could get some strange results? Improve later?
                     yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
                     setNeutralOutput();
+                }
+                else if (utils_1.context.payload.action === 'reopened') {
+                    core.info('reopened PR');
+                    if (!isPreviewEnabled) {
+                        core.info('adding welcome message on reopened PR');
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
+                        setNeutralOutput();
+                    }
                 }
                 else if (utils_1.context.payload.action === 'synchronize') {
                     if (isPreviewEnabled) {
@@ -1354,7 +1420,7 @@ const removePreviewsForCurrentPullRequest = (options) => __awaiter(void 0, void 
     //
     //   core.info('done');
     // } catch (err: any) {
-    //   core.error('Failed to delete docker images');
+    //   core.error('Failed to delete d ocker images');
     //   core.error(err.message);
     // }
     core.info(`All previews for app ${appName} deleted successfully!`);

@@ -144,7 +144,7 @@ export const removePreviewsForCurrentPullRequest = async (
   //
   //   core.info('done');
   // } catch (err: any) {
-  //   core.error('Failed to delete docker images');
+  //   core.error('Failed to delete d ocker images');
   //   core.error(err.message);
   // }
 
