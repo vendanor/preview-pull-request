@@ -5,4 +5,5 @@
 
 
 TODO: 
-- on reopen 
+- handle reopen better 
+- skip ci? 
