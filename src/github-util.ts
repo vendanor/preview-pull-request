@@ -133,7 +133,7 @@ export const getBase = async (
 export const getCurrentPullRequestId = async (
   token: string
 ): Promise<number> => {
-  core.info('Getting current pull request id...');
+  // core.info('Getting current pull request id...');
   const client = new GitHub({
     auth: token
   });
