@@ -919,6 +919,7 @@ const github_util_1 = __nccwpck_require__(2762);
 const utils_1 = __nccwpck_require__(3030);
 const parse_comment_1 = __nccwpck_require__(1048);
 const core_1 = __nccwpck_require__(2186);
+const run_cmd_1 = __nccwpck_require__(7537);
 const setOutputFromResult = (result) => {
     if (result.previewUrl) {
         core.setOutput('preview-url', result.previewUrl);
@@ -997,18 +998,6 @@ function run() {
                 setNeutralOutput();
                 return;
             }
-            try {
-                core.info('checking for skip ci...');
-                //     if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'skip ci')
-                const prId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
-                const base = yield (0, github_util_1.getBase)(options.githubToken, prId);
-                const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
-                core.info('skipCi1: ' + isSkipCi);
-                core.info(JSON.stringify(utils_1.context, null, 2));
-            }
-            catch (err) {
-                core.info(err.message);
-            }
             const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
             core.info('isPreviewEnabled: ' + isPreviewEnabled);
             core.setOutput('isPreviewEnabled', isPreviewEnabled);
@@ -1039,6 +1028,29 @@ function run() {
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
+            try {
+                core.info('checking for skip ci...');
+                //     if: github.event_name == 'push' && !contains(github.event.head_commit.message, 'skip ci')
+                const prId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
+                const base = yield (0, github_util_1.getBase)(options.githubToken, prId);
+                const isSkipCi = base && base.body && base.body.indexOf('skip ci') > -1;
+                core.info('skipCi1: ' + isSkipCi);
+                if (base.body)
+                    core.info(base.body);
+                // core.info(JSON.stringify(context, null, 2));
+                const res = yield (0, run_cmd_1.runCmd)('git log -1 --pretty=%B');
+                core.info(res.output);
+                const skipCi2 = res && res.output && res.output.toLowerCase().indexOf('skip ci') > -1;
+                core.info('skip ci 2: ' + skipCi2);
+                if (isAddPreviewPending && skipCi2) {
+                    core.info('skip ci!');
+                    setNeutralOutput();
+                    return;
+                }
+            }
+            catch (err) {
+                core.info(err.message);
+            }
             if (options.probe.toLowerCase() === 'true') {
                 if (isCommentAction) {
                     core.info('👀 add early feedback on probing');
@@ -1115,15 +1127,15 @@ function run() {
                     }
                 }
                 else if (utils_1.context.payload.action === 'opened') {
-                    core.info('opened or reopened PR, show welcome message');
+                    core.info('opened PR, show welcome message');
                     // TODO: if we close PR and reopen very quick we could get some strange results? Improve later?
                     yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
                     setNeutralOutput();
                 }
                 else if (utils_1.context.payload.action === 'reopened') {
-                    // TODO: check if comment, if NOT, post welcome
-                    // TODO: if isBot, dont bother building, deploying, etc.. ABORT early...
+                    core.info('reopened PR');
                     if (!isPreviewEnabled) {
+                        core.info('adding welcome message on reopened PR');
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('welcome', options);
                         setNeutralOutput();
                     }
