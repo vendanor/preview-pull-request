@@ -6,15 +6,12 @@ import { batman } from './batman';
 import { postOrUpdateGithubComment } from './sticky-comment';
 import {
   addCommentReaction,
-  getBase,
-  getCurrentPullRequestId,
   getLatestCommitMessage,
   readIsPreviewEnabledFromComment
 } from './github-util';
 import { context } from '@actions/github/lib/utils';
 import { parseComment } from './parse-comment';
 import { setFailed } from '@actions/core';
-import { runCmd } from './run-cmd';
 
 const setOutputFromResult = (result: CommandResult) => {
   if (result.previewUrl) {
