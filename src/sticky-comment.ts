@@ -20,8 +20,8 @@ export type MessageType =
 const commands = `
 
 You can trigger preview-pull-request by commenting on this PR:  
-- \`@github-action add-preview\` will deploy a preview 
-- \`@github-action remove-preview\` will remove a preview
+- \`@github-actions add-preview\` will deploy a preview 
+- \`@github-actions remove-preview\` will remove a preview
 - preview will be updated on new commits to PR
 - preview will be removed when the PR is closed
  
