@@ -49,11 +49,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
 
   // Pack Helm chart
   const chartVersion = `${options.helmTagMajor}.0${tagPostfix}`;
-  const chartFilenameWithoutFolder = options.helmChartFilePath.replace(
-    /^.*[\\\/]/,
-    ''
-  );
-  const chartFilenameToPush = `${chartFilenameWithoutFolder}-${options.helmTagMajor}.0${tagPostfix}.tgz`;
+  const chartFilenameToPush = `${options.appName}-${options.helmTagMajor}.0${tagPostfix}.tgz`;
   const appVersionClean = `${options.dockerTagMajor}.0${tagPostfix}`;
 
   // https://github.com/chartmuseum/helm-push/issues/103#issuecomment-933297249
