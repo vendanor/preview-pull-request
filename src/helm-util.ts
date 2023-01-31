@@ -142,7 +142,7 @@ export async function downloadHelm(version: string): Promise<string> {
 async function getLatestHelmVersionFor(type: string): Promise<string> {
   const token = core.getInput('token', { required: true });
   try {
-    const { repository } = await graphql(
+    const repository: any = await graphql(
       `
         {
           repository(name: "helm", owner: "helm") {

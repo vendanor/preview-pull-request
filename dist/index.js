@@ -813,7 +813,7 @@ function getLatestHelmVersionFor(type) {
     return __awaiter(this, void 0, void 0, function* () {
         const token = core.getInput('token', { required: true });
         try {
-            const { repository } = yield (0, graphql_1.graphql)(`
+            const repository = yield (0, graphql_1.graphql)(`
         {
           repository(name: "helm", owner: "helm") {
             releases(last: 100) {
@@ -1251,7 +1251,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.parseComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
-const commentPrefix = '@github-action';
+const commentPrefix = '@github-actions';
 const parseComment = () => {
     const comment = utils_1.context.payload.comment.body;
     if (!comment.toLowerCase().startsWith(commentPrefix)) {
@@ -1553,8 +1553,8 @@ const common_1 = __nccwpck_require__(6979);
 const commands = `
 
 You can trigger preview-pull-request by commenting on this PR:  
-- \`@github-action add-preview\` will deploy a preview 
-- \`@github-action remove-preview\` will remove a preview
+- \`@github-actions add-preview\` will deploy a preview 
+- \`@github-actions remove-preview\` will remove a preview
 - preview will be updated on new commits to PR
 - preview will be removed when the PR is closed
  
