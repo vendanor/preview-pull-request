@@ -158,5 +158,5 @@ outputs:
     description: "Returns true if a preview will be removed"
 
 runs:
-  using: 'node12'
+  using: 'node16'
   main: 'dist/index.js'
