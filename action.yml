@@ -50,6 +50,7 @@ inputs:
     description: "Helm namespace where Helm releases are published. Also used as k8s namespace!"
   helm-repo-url:
     required: false
+    default: "https://helm.vendanor.com"
     description: "Helm chart repo. If supplied, Helm charts are published here"
   helm-organization:
     required: false
@@ -63,6 +64,7 @@ inputs:
     required: false
     description: "Helm chart repo password if you want tp publish chart"
   helm-chart:
+    default: "chart"
     required: false
     description: "Path to helm chart in repo, example: charts/vn-my-app"
   helm-tag-major:
