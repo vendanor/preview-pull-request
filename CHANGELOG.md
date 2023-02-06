@@ -6,3 +6,4 @@
 - v3.3 Use appname for helm filename (not chart folder)
 - v3.4 Bumped dependencies, Rename @github-action to @github-actions
 - v3.5 More default values, Node v16
+- v3.6 Replaced url by host as required helm argument

@@ -12,7 +12,7 @@ export interface Options {
   helmKeyAppName: string;
   helmKeyImage: string;
   helmKeyPullSecret: string;
-  helmKeyUrl: string;
+  helmKeyHost: string;
   helmKeyContainerSuffix: string;
   helmKeyClusterIssuer: string;
   helmKeyTlsSecretName: string;
@@ -88,7 +88,7 @@ const optionsDict: { [key in OptionKeys]: string } = {
   helmKeyClusterIssuer: 'helm-key-cluster-issuer',
   helmKeyTlsSecretName: 'helm-key-tls-secret-name',
   helmRemovePreviewCharts: 'helm-preview-charts',
-  helmKeyUrl: 'helm-key-url',
+  helmKeyHost: 'helm-key-host',
   helmKeyNamespace: 'helm-key-namespace',
   helmKeyImage: 'helm-key-image',
   helmKeyContainerSuffix: 'helm-key-container-suffix',

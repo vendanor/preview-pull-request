@@ -92,9 +92,9 @@ inputs:
     required: true
     default: "pullsecret"
     description: "The key to set in your helm chart to set when installing preview"
-  helm-key-url:
+  helm-key-host:
     required: true
-    default: "url"
+    default: "host"
     description: "The key to set in your helm chart to set when installing preview"
   helm-key-containersuffix:
     required: true

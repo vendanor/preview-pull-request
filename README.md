@@ -35,10 +35,10 @@ This action is (currently) tightly coupled to the following set of tools and con
 
 ## Usage
 1. Define a Helm chart for your app where `appname`, `namespace`, `docker-image`, 
-   `pullsecret`, `url`, `cluster-issuer`, `tls-secret-name` is defined
+   `pullsecret`, `host`, `cluster-issuer`, `tls-secret-name` is defined
 with values that can be overridden. This action will generate values per Pull Request
 and set these when packaging the helm chart.
-2. Create a GitHub action script `preview.yml` to integrate `preview-pull-request`
+1. Create a GitHub action script `preview.yml` to integrate `preview-pull-request`
 
 ### 1. Define Helm chart
 
@@ -77,10 +77,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - {{ .Values.url }}
+        - {{ .Values.host }}
       secretName: {{ .Values.tlsSecretName }}
   rules:
-    - host: {{ .Values.url }}
+    - host: {{ .Values.host }}
       http:
         paths:
           - pathType: Prefix
