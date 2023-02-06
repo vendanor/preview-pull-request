@@ -48,7 +48,7 @@ Example `values.yaml` in Helm chart:
 appname: myapp
 namespace: myapp-ns
 image: ghcr.io/company/myapp:latest
-url: myapp.company.com
+host: myapp.company.com
 pullsecret: replace
 containersuffix: production
 clusterIssuer: my-cluster-issuer
