@@ -92,13 +92,14 @@ async function run(): Promise<void> {
     core.setOutput('isBot', isBot);
     core.setOutput('isComment', isCommentAction);
 
-    if (isBot) {
-      core.info(
-        `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
-      );
-      setNeutralOutput();
-      return;
-    }
+    // Commented out for allowing bots :)
+    // if (isBot) {
+    //   core.info(
+    //     `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
+    //   );
+    //   setNeutralOutput();
+    //   return;
+    // }
 
     const isPreviewEnabled = await readIsPreviewEnabledFromComment(
       options.githubToken

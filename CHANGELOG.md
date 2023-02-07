@@ -7,3 +7,4 @@
 - v3.4 Bumped dependencies, Rename @github-action to @github-actions
 - v3.5 More default values, Node v16
 - v3.6 Replaced url by host as required helm argument
+- v3.7 Allowing bots

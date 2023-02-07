@@ -1027,11 +1027,14 @@ function run() {
             core.info(`isComment: ${isCommentAction}`);
             core.setOutput('isBot', isBot);
             core.setOutput('isComment', isCommentAction);
-            if (isBot) {
-                core.info(`Hello 🤖 ${utils_1.context.actor}, you are not allowed to proceed, good bye!`);
-                setNeutralOutput();
-                return;
-            }
+            // Commented out for allowing bots :)
+            // if (isBot) {
+            //   core.info(
+            //     `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
+            //   );
+            //   setNeutralOutput();
+            //   return;
+            // }
             const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
             core.info('isPreviewEnabled: ' + isPreviewEnabled);
             core.setOutput('isPreviewEnabled', isPreviewEnabled);
