@@ -10,3 +10,4 @@
 - v3.7 Allowing bots
 - v3.8 Slimmed comments
 - v3.9 Slimmed comments even more
+- v3.10 Slimmed comments even more even more
