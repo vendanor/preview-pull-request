@@ -19,7 +19,7 @@ export type MessageType =
 
 const commands = `
 
-You can trigger preview-pull-request by commenting on this PR:  
+Trigger preview commands by commenting on this PR:  
 - \`@github-actions add-preview\` will deploy a preview 
 - \`@github-actions remove-preview\` will remove a preview
 - preview will be updated on new commits to PR
@@ -40,51 +40,39 @@ export async function postOrUpdateGithubComment(
   const pullRequestId = await getCurrentPullRequestId(options.githubToken);
 
   core.info('Posting message to github PR: ' + type);
-  const img =
-    'https://github.com/vendanor/preview-pull-request/blob/main/logo.png?raw=true';
   const messages: { [key in MessageType]: string } = {
     welcome: `
 ${headerPreviewEnabled(false)}
-![vn](${img} "vn")
-👷 Hello! Do you want to preview your stuff? 
+🔮 Do you want to preview this PR? 
 ${commands}
     `,
     fail: `
 ${headerPreviewEnabled(true)}
-![vn](${img} "vn")
-🚨🚨 Preview :: Last job failed! 🚨🚨
+🚨🚨🚨 Preview (${sha7}) failed 🚨🚨🚨
 
 ${content?.errorMessage && 'Error message:'}
 ${content?.errorMessage}
-
-Your preview (${sha7}) is (not yet) available.
 ${commands}
   `,
     success: `
 ${headerPreviewEnabled(true)}
-![vn](${img} "vn")
-Your preview (${sha7}) is available here:
+🔮 Preview (${sha7}) is available at:
 <https://${content?.completePreviewUrl}>
 ${commands}
   `,
     removed: `
 ${headerPreviewEnabled(false)}
-![vn](${img} "vn")
-All previews are uninstalled from Kubernetes.  
+🧹 All previews are uninstalled.
 ${commands}
   `,
     brewing: `
 ${headerPreviewEnabled(true)}
-![vn](${img} "vn")
-
-👷 A new version (${sha7}) is currently building..
+👷 Building preview (${sha7})...
 ${commands}
     `,
     cancelled: `
 ${headerPreviewEnabled(true)}
-![vn](${img} "vn")
-🚨🚨 Preview :: Last job cancelled 🚨🚨
-Your preview (${sha7}) is (not yet) available.    
+🚨🚨🚨 Preview (${sha7}) cancelled 🚨🚨🚨 
 ${commands}
     `
   };

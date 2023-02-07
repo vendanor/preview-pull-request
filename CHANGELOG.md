@@ -8,3 +8,4 @@
 - v3.5 More default values, Node v16
 - v3.6 Replaced url by host as required helm argument
 - v3.7 Allowing bots
+- v3.8 Slimmed comments

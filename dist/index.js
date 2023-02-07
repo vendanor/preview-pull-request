@@ -1555,7 +1555,7 @@ const github_util_1 = __nccwpck_require__(2762);
 const common_1 = __nccwpck_require__(6979);
 const commands = `
 
-You can trigger preview-pull-request by commenting on this PR:  
+Trigger preview commands by commenting on this PR:  
 - \`@github-actions add-preview\` will deploy a preview 
 - \`@github-actions remove-preview\` will remove a preview
 - preview will be updated on new commits to PR
@@ -1568,50 +1568,39 @@ function postOrUpdateGithubComment(type, options, content) {
         const sha7 = yield (0, github_util_1.getLatestCommitShortSha)(options.githubToken);
         const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
         core.info('Posting message to github PR: ' + type);
-        const img = 'https://github.com/vendanor/preview-pull-request/blob/main/logo.png?raw=true';
         const messages = {
             welcome: `
 ${(0, common_1.headerPreviewEnabled)(false)}
-![vn](${img} "vn")
-👷 Hello! Do you want to preview your stuff? 
+🔮 Do you want to preview this PR? 
 ${commands}
     `,
             fail: `
 ${(0, common_1.headerPreviewEnabled)(true)}
-![vn](${img} "vn")
-🚨🚨 Preview :: Last job failed! 🚨🚨
+🚨🚨🚨 Preview (${sha7}) failed 🚨🚨🚨
 
 ${(content === null || content === void 0 ? void 0 : content.errorMessage) && 'Error message:'}
 ${content === null || content === void 0 ? void 0 : content.errorMessage}
-
-Your preview (${sha7}) is (not yet) available.
 ${commands}
   `,
             success: `
 ${(0, common_1.headerPreviewEnabled)(true)}
-![vn](${img} "vn")
-Your preview (${sha7}) is available here:
+🔮 Preview (${sha7}) is available at:
 <https://${content === null || content === void 0 ? void 0 : content.completePreviewUrl}>
 ${commands}
   `,
             removed: `
 ${(0, common_1.headerPreviewEnabled)(false)}
-![vn](${img} "vn")
-All previews are uninstalled from Kubernetes.  
+🧹 All previews are uninstalled.
 ${commands}
   `,
             brewing: `
 ${(0, common_1.headerPreviewEnabled)(true)}
-![vn](${img} "vn")
-
-👷 A new version (${sha7}) is currently building..
+👷 Building preview (${sha7})...
 ${commands}
     `,
             cancelled: `
 ${(0, common_1.headerPreviewEnabled)(true)}
-![vn](${img} "vn")
-🚨🚨 Preview :: Last job cancelled 🚨🚨
-Your preview (${sha7}) is (not yet) available.    
+🚨🚨🚨 Preview (${sha7}) cancelled 🚨🚨🚨 
 ${commands}
     `
         };
