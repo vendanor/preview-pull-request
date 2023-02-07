@@ -1555,11 +1555,10 @@ const github_util_1 = __nccwpck_require__(2762);
 const common_1 = __nccwpck_require__(6979);
 const commands = `
 
-Trigger preview commands by commenting on this PR:  
-- \`@github-actions add-preview\` will deploy a preview 
-- \`@github-actions remove-preview\` will remove a preview
-- preview will be updated on new commits to PR
-- preview will be removed when the PR is closed
+- Commenting \`@github-actions add-preview\` will deploy a preview
+- Commenting \`@github-actions remove-preview\` will remove the preview
+- The preview will be re-deployed on new commits
+- The preview will be removed when the PR is closed
  
 `;
 function postOrUpdateGithubComment(type, options, content) {
@@ -1576,7 +1575,7 @@ ${commands}
     `,
             fail: `
 ${(0, common_1.headerPreviewEnabled)(true)}
-🚨🚨🚨 Preview (${sha7}) failed 🚨🚨🚨
+🚨 **Preview failed!** (${sha7})
 
 ${(content === null || content === void 0 ? void 0 : content.errorMessage) && 'Error message:'}
 ${content === null || content === void 0 ? void 0 : content.errorMessage}
@@ -1584,23 +1583,21 @@ ${commands}
   `,
             success: `
 ${(0, common_1.headerPreviewEnabled)(true)}
-🔮 Preview (${sha7}) is available at:
-<https://${content === null || content === void 0 ? void 0 : content.completePreviewUrl}>
+🔮 Preview (${sha7}) at <https://${content === null || content === void 0 ? void 0 : content.completePreviewUrl}>
 ${commands}
   `,
             removed: `
 ${(0, common_1.headerPreviewEnabled)(false)}
 🧹 All previews are uninstalled.
-${commands}
   `,
             brewing: `
 ${(0, common_1.headerPreviewEnabled)(true)}
-👷 Building preview (${sha7})...
+👷 Building preview... (${sha7})
 ${commands}
     `,
             cancelled: `
 ${(0, common_1.headerPreviewEnabled)(true)}
-🚨🚨🚨 Preview (${sha7}) cancelled 🚨🚨🚨 
+🚨 *Preview  cancelled!**  (${sha7})
 ${commands}
     `
         };

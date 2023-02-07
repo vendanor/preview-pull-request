@@ -9,3 +9,4 @@
 - v3.6 Replaced url by host as required helm argument
 - v3.7 Allowing bots
 - v3.8 Slimmed comments
+- v3.9 Slimmed comments even more

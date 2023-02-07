@@ -19,11 +19,10 @@ export type MessageType =
 
 const commands = `
 
-Trigger preview commands by commenting on this PR:  
-- \`@github-actions add-preview\` will deploy a preview 
-- \`@github-actions remove-preview\` will remove a preview
-- preview will be updated on new commits to PR
-- preview will be removed when the PR is closed
+- Commenting \`@github-actions add-preview\` will deploy a preview
+- Commenting \`@github-actions remove-preview\` will remove the preview
+- The preview will be re-deployed on new commits
+- The preview will be removed when the PR is closed
  
 `;
 
@@ -48,7 +47,7 @@ ${commands}
     `,
     fail: `
 ${headerPreviewEnabled(true)}
-🚨🚨🚨 Preview (${sha7}) failed 🚨🚨🚨
+🚨 **Preview failed!** (${sha7})
 
 ${content?.errorMessage && 'Error message:'}
 ${content?.errorMessage}
@@ -56,23 +55,21 @@ ${commands}
   `,
     success: `
 ${headerPreviewEnabled(true)}
-🔮 Preview (${sha7}) is available at:
-<https://${content?.completePreviewUrl}>
+🔮 Preview (${sha7}) at <https://${content?.completePreviewUrl}>
 ${commands}
   `,
     removed: `
 ${headerPreviewEnabled(false)}
 🧹 All previews are uninstalled.
-${commands}
   `,
     brewing: `
 ${headerPreviewEnabled(true)}
-👷 Building preview (${sha7})...
+👷 Building preview... (${sha7})
 ${commands}
     `,
     cancelled: `
 ${headerPreviewEnabled(true)}
-🚨🚨🚨 Preview (${sha7}) cancelled 🚨🚨🚨 
+🚨 *Preview  cancelled!**  (${sha7})
 ${commands}
     `
   };
