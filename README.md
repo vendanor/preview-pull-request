@@ -217,8 +217,8 @@ You can use `preview-pull-request` with a unique certificate per preview,
 or a shared wildcard certificate. 
 
 ### Unique certificates
-When deploying previews, set `cluster-issuer` to an issuer with support for resolving HTTP01 challenges.
-Set `tls-secret-name` to a dynamic value to get a unique certificate for each PR.
+When deploying previews, set `clusterIssuer` to an issuer with support for resolving HTTP01 challenges.
+Set `tlsSecretName` to a dynamic value to get a unique certificate for each PR.
 
 ### Wildcard certificates
 Add a ClusterIssuer which can resolve DNS01 challenges. Kubernetes cert-manager supports a few well known DNS services.
