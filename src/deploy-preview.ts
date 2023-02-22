@@ -52,11 +52,8 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const chartFilenameToPush = `${options.appName}-${options.helmTagMajor}.0${tagPostfix}.tgz`;
   const appVersionClean = `${options.dockerTagMajor}.0${tagPostfix}`;
 
-  // https://github.com/chartmuseum/helm-push/issues/103#issuecomment-933297249
-  // Cant move to v3.7 yet because of bug..
-  core.info('Installing helm 3.6.3...');
-
-  const version = 'v3.6.3';
+  const version = 'v3.11.1';
+  core.info('Installing helm ' + version);
   let cachedPath = await downloadHelm(version);
   try {
     if (!process.env['PATH']?.startsWith(path.dirname(cachedPath))) {
