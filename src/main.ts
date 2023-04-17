@@ -5,7 +5,7 @@ import { deployPreview } from './deploy-preview';
 import { batman } from './batman';
 import { postOrUpdateGithubComment } from './sticky-comment';
 import {
-  addCommentReaction,
+  addCommentReaction, getCurrentPullRequestId,
   getLatestCommitMessage,
   readIsPreviewEnabledFromComment
 } from './github-util';
@@ -92,15 +92,6 @@ async function run(): Promise<void> {
     core.setOutput('isBot', isBot);
     core.setOutput('isComment', isCommentAction);
 
-    // Commented out for allowing bots :)
-    // if (isBot) {
-    //   core.info(
-    //     `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
-    //   );
-    //   setNeutralOutput();
-    //   return;
-    // }
-
     const isPreviewEnabled = await readIsPreviewEnabledFromComment(
       options.githubToken
     );
@@ -132,9 +123,13 @@ async function run(): Promise<void> {
         isPreviewEnabled;
     }
 
+    const pullRequestId = await getCurrentPullRequestId(options.githubToken);
+
+    core.info('pullRequestId: ' + pullRequestId);
     core.info('isValidCommand: ' + isValidCommand);
     core.info('isAddPreviewPending: ' + isAddPreviewPending);
     core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
+    core.setOutput('pullRequestId', pullRequestId);
     core.setOutput('isValidCommand', isValidCommand);
     core.setOutput('isAddPreviewPending', isAddPreviewPending);
     core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
@@ -161,7 +156,6 @@ async function run(): Promise<void> {
         core.info('👀 add early feedback on probing');
         if (isAddPreviewPending) {
           await addCommentReaction(options.githubToken, 'rocket');
-          await postOrUpdateGithubComment('brewing', options);
         } else if (isRemovePreviewPending) {
           await addCommentReaction(options.githubToken, '+1');
         }
@@ -176,9 +170,8 @@ async function run(): Promise<void> {
 
       if (commentAction === 'add-preview') {
         try {
-          // await addCommentReaction(options.githubToken, 'rocket');
           validateOptions(options);
-          // await postOrUpdateGithubComment('brewing', options);
+          await postOrUpdateGithubComment('brewing', options);
           const result = await deployPreview(options);
           await postOrUpdateGithubComment('success', options, {
             completePreviewUrl: result.previewUrl
@@ -192,7 +185,6 @@ async function run(): Promise<void> {
         }
       } else if (commentAction === 'remove-preview') {
         try {
-          // await addCommentReaction(options.githubToken, '+1');
           validateOptions(options);
           const result = await removePreviewsForCurrentPullRequest(options);
           await postOrUpdateGithubComment('removed', options);

@@ -158,6 +158,8 @@ outputs:
     description: "Returns true if a preview will be deployed"
   isRemovePreviewPending:
     description: "Returns true if a preview will be removed"
+  pullRequestNumber:
+    description: "Returns the pull request number"
 
 runs:
   using: 'node16'
