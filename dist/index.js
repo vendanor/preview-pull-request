@@ -590,7 +590,7 @@ function pullRequestDetails(token) {
         const client = new utils_1.GitHub({
             auth: token
         });
-        const { repository: { pullRequest: { baseRef, headRef, }, }, } = yield client.graphql(`
+        const { repository: { pullRequest: { baseRef, headRef } } } = yield client.graphql(`
       query pullRequestDetails($repo:String!, $owner:String!, $number:Int!) {
         repository(name: $repo, owner: $owner) {
           pullRequest(number: $number) {
@@ -614,7 +614,7 @@ function pullRequestDetails(token) {
             base_ref: baseRef.name,
             base_sha: baseRef.target.oid,
             head_ref: headRef.name,
-            head_sha: headRef.target.oid,
+            head_sha: headRef.target.oid
         };
     });
 }
