@@ -160,6 +160,8 @@ outputs:
     description: "Returns true if a preview will be removed"
   pullRequestNumber:
     description: "Returns the pull request number"
+  pullRequestHeadRef:
+    description: "The latest commit sha7"
 
 runs:
   using: 'node16'

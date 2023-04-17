@@ -1050,11 +1050,14 @@ function run() {
                         isPreviewEnabled;
             }
             const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
+            const pullRequestHeadRef = yield (0, github_util_1.getLatestCommitShortSha)(options.githubToken);
             core.info('pullRequestId: ' + pullRequestId);
             core.info('isValidCommand: ' + isValidCommand);
             core.info('isAddPreviewPending: ' + isAddPreviewPending);
             core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
+            core.info('ppullRequestHeadRef: ' + pullRequestHeadRef);
             core.setOutput('pullRequestId', pullRequestId);
+            core.setOutput('pullRequestHeadRef', pullRequestHeadRef);
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
