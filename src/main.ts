@@ -9,6 +9,7 @@ import {
   getCurrentPullRequestId,
   getLatestCommitMessage,
   getLatestCommitShortSha,
+  pullRequestDetails,
   readIsPreviewEnabledFromComment
 } from './github-util';
 import { context } from '@actions/github/lib/utils';
@@ -126,17 +127,15 @@ async function run(): Promise<void> {
     }
 
     const pullRequestId = await getCurrentPullRequestId(options.githubToken);
-    const pullRequestHeadRef = await getLatestCommitShortSha(
-      options.githubToken
-    );
+    const { head_ref: headRef } = await pullRequestDetails(options.githubToken);
 
     core.info('pullRequestId: ' + pullRequestId);
     core.info('isValidCommand: ' + isValidCommand);
     core.info('isAddPreviewPending: ' + isAddPreviewPending);
     core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
-    core.info('pullRequestHeadRef: ' + pullRequestHeadRef);
+    core.info('headRef: ' + headRef);
     core.setOutput('pullRequestId', pullRequestId);
-    core.setOutput('pullRequestHeadRef', pullRequestHeadRef);
+    core.setOutput('headRef', headRef);
     core.setOutput('isValidCommand', isValidCommand);
     core.setOutput('isAddPreviewPending', isAddPreviewPending);
     core.setOutput('isRemovePreviewPending', isRemovePreviewPending);

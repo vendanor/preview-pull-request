@@ -446,7 +446,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getLatestCommitMessage = exports.getLatestCommitShortSha = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
+exports.getLatestCommitMessage = exports.getLatestCommitShortSha = exports.pullRequestDetails = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
 const common_1 = __nccwpck_require__(6979);
@@ -585,6 +585,40 @@ const addCommentReaction = (token, content) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.addCommentReaction = addCommentReaction;
+function pullRequestDetails(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const client = new utils_1.GitHub({
+            auth: token
+        });
+        const { repository: { pullRequest: { baseRef, headRef, }, }, } = yield client.graphql(`
+      query pullRequestDetails($repo:String!, $owner:String!, $number:Int!) {
+        repository(name: $repo, owner: $owner) {
+          pullRequest(number: $number) {
+            baseRef {
+              name
+              target {
+                oid
+              }
+            }
+            headRef {
+              name
+              target {
+                oid
+              }
+            }
+          }
+        }
+      }
+    `, Object.assign(Object.assign({}, utils_1.context.repo), { number: utils_1.context.issue.number }));
+        return {
+            base_ref: baseRef.name,
+            base_sha: baseRef.target.oid,
+            head_ref: headRef.name,
+            head_sha: headRef.target.oid,
+        };
+    });
+}
+exports.pullRequestDetails = pullRequestDetails;
 const getLatestCommitShortSha = (token) => __awaiter(void 0, void 0, void 0, function* () {
     // we need sha of latest commit
     const client = new utils_1.GitHub({
@@ -1050,14 +1084,14 @@ function run() {
                         isPreviewEnabled;
             }
             const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
-            const pullRequestHeadRef = yield (0, github_util_1.getLatestCommitShortSha)(options.githubToken);
+            const { head_ref: headRef } = yield (0, github_util_1.pullRequestDetails)(options.githubToken);
             core.info('pullRequestId: ' + pullRequestId);
             core.info('isValidCommand: ' + isValidCommand);
             core.info('isAddPreviewPending: ' + isAddPreviewPending);
             core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
-            core.info('pullRequestHeadRef: ' + pullRequestHeadRef);
+            core.info('headRef: ' + headRef);
             core.setOutput('pullRequestId', pullRequestId);
-            core.setOutput('pullRequestHeadRef', pullRequestHeadRef);
+            core.setOutput('headRef', headRef);
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
