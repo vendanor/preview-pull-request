@@ -207,6 +207,7 @@ function deployPreview(options) {
         const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
         const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.0${tagPostfix}`;
         core.info('Building docker image: ' + dockerImageVersion);
+        core.info('Using sha: ' + sha7);
         const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
         const dockerBuildResult = yield (0, run_cmd_1.runCmd)('docker', [
             'build',
@@ -529,7 +530,6 @@ const getBase = (token, prId) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.getBase = getBase;
 const getCurrentPullRequestId = (token) => __awaiter(void 0, void 0, void 0, function* () {
-    // core.info('Getting current pull request id...');
     const client = new utils_1.GitHub({
         auth: token
     });
@@ -1025,14 +1025,6 @@ function run() {
             core.info(`isComment: ${isCommentAction}`);
             core.setOutput('isBot', isBot);
             core.setOutput('isComment', isCommentAction);
-            // Commented out for allowing bots :)
-            // if (isBot) {
-            //   core.info(
-            //     `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
-            //   );
-            //   setNeutralOutput();
-            //   return;
-            // }
             const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
             core.info('isPreviewEnabled: ' + isPreviewEnabled);
             core.setOutput('isPreviewEnabled', isPreviewEnabled);
@@ -1057,9 +1049,12 @@ function run() {
                         utils_1.context.payload.action === 'closed' &&
                         isPreviewEnabled;
             }
+            const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
+            core.info('pullRequestId: ' + pullRequestId);
             core.info('isValidCommand: ' + isValidCommand);
             core.info('isAddPreviewPending: ' + isAddPreviewPending);
             core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
+            core.setOutput('pullRequestId', pullRequestId);
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
@@ -1086,7 +1081,6 @@ function run() {
                     core.info('👀 add early feedback on probing');
                     if (isAddPreviewPending) {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
-                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
                     }
                     else if (isRemovePreviewPending) {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
@@ -1100,9 +1094,8 @@ function run() {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 if (commentAction === 'add-preview') {
                     try {
-                        // await addCommentReaction(options.githubToken, 'rocket');
                         (0, common_1.validateOptions)(options);
-                        // await postOrUpdateGithubComment('brewing', options);
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
                         const result = yield (0, deploy_preview_1.deployPreview)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, {
                             completePreviewUrl: result.previewUrl
@@ -1118,7 +1111,6 @@ function run() {
                 }
                 else if (commentAction === 'remove-preview') {
                     try {
-                        // await addCommentReaction(options.githubToken, '+1');
                         (0, common_1.validateOptions)(options);
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);

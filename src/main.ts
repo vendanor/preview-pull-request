@@ -5,7 +5,8 @@ import { deployPreview } from './deploy-preview';
 import { batman } from './batman';
 import { postOrUpdateGithubComment } from './sticky-comment';
 import {
-  addCommentReaction, getCurrentPullRequestId,
+  addCommentReaction,
+  getCurrentPullRequestId,
   getLatestCommitMessage,
   readIsPreviewEnabledFromComment
 } from './github-util';
