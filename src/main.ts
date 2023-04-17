@@ -134,29 +134,12 @@ async function run(): Promise<void> {
     core.info('isValidCommand: ' + isValidCommand);
     core.info('isAddPreviewPending: ' + isAddPreviewPending);
     core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
-    core.info('ppullRequestHeadRef: ' + pullRequestHeadRef);
+    core.info('pullRequestHeadRef: ' + pullRequestHeadRef);
     core.setOutput('pullRequestId', pullRequestId);
     core.setOutput('pullRequestHeadRef', pullRequestHeadRef);
     core.setOutput('isValidCommand', isValidCommand);
     core.setOutput('isAddPreviewPending', isAddPreviewPending);
     core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
-
-    try {
-      core.info('checking for skip ci...');
-      const msg = await getLatestCommitMessage(options.githubToken);
-      const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
-      if (msg) core.info(msg);
-      else core.info('no msg');
-
-      if (isAddPreviewPending && skipCi2) {
-        core.info('skip ci detected, setting isAddPreviewPending to false');
-        setNeutralOutput();
-        core.setOutput('isAddPreviewPending', false);
-        return;
-      }
-    } catch (err: any) {
-      core.info(err.message);
-    }
 
     if (options.probe.toLowerCase() === 'true') {
       if (isCommentAction) {
@@ -241,6 +224,22 @@ async function run(): Promise<void> {
         }
       } else if (context.payload.action === 'synchronize') {
         if (isPreviewEnabled) {
+          try {
+            core.info('checking for skip ci...');
+            const msg = await getLatestCommitMessage(options.githubToken);
+            const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
+            if (isAddPreviewPending && skipCi2) {
+              core.info(
+                'skip ci detected, setting isAddPreviewPending to false'
+              );
+              setNeutralOutput();
+              core.setOutput('isAddPreviewPending', false);
+              return;
+            }
+          } catch (err: any) {
+            core.error(err.message);
+          }
+
           core.info('synchronize PR, updating preview');
           try {
             validateOptions(options);
