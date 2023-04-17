@@ -133,7 +133,6 @@ export const getBase = async (
 export const getCurrentPullRequestId = async (
   token: string
 ): Promise<number> => {
-  // core.info('Getting current pull request id...');
   const client = new GitHub({
     auth: token
   });
@@ -204,6 +203,69 @@ export const addCommentReaction = async (
     core.error('👎 Failed to add reaction');
   }
 };
+
+interface PullRequestDetailsResponse {
+  repository: {
+    pullRequest: {
+      headRef: {
+        name: string;
+        target: {
+          oid: string;
+        };
+      };
+      baseRef: {
+        name: string;
+        target: {
+          oid: string;
+        };
+      };
+    };
+  };
+}
+
+export async function pullRequestDetails(token: string) {
+  const client = new GitHub({
+    auth: token
+  });
+
+  const {
+    repository: {
+      pullRequest: { baseRef, headRef }
+    }
+  } = await client.graphql<PullRequestDetailsResponse>(
+    `
+      query pullRequestDetails($repo:String!, $owner:String!, $number:Int!) {
+        repository(name: $repo, owner: $owner) {
+          pullRequest(number: $number) {
+            baseRef {
+              name
+              target {
+                oid
+              }
+            }
+            headRef {
+              name
+              target {
+                oid
+              }
+            }
+          }
+        }
+      }
+    `,
+    {
+      ...context.repo,
+      number: context.issue.number
+    }
+  );
+
+  return {
+    base_ref: baseRef.name,
+    base_sha: baseRef.target.oid,
+    head_ref: headRef.name,
+    head_sha: headRef.target.oid
+  };
+}
 
 export const getLatestCommitShortSha = async (token: string) => {
   // we need sha of latest commit

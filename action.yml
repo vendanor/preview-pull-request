@@ -158,6 +158,10 @@ outputs:
     description: "Returns true if a preview will be deployed"
   isRemovePreviewPending:
     description: "Returns true if a preview will be removed"
+  pullRequestNumber:
+    description: "Returns the pull request number"
+  headRef:
+    description: "Use this to checkout the correct ref when triggered by a comment"
 
 runs:
   using: 'node16'

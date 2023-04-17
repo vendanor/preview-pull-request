@@ -207,6 +207,7 @@ function deployPreview(options) {
         const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
         const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.0${tagPostfix}`;
         core.info('Building docker image: ' + dockerImageVersion);
+        core.info('Using sha: ' + sha7);
         const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
         const dockerBuildResult = yield (0, run_cmd_1.runCmd)('docker', [
             'build',
@@ -445,7 +446,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.getLatestCommitMessage = exports.getLatestCommitShortSha = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
+exports.getLatestCommitMessage = exports.getLatestCommitShortSha = exports.pullRequestDetails = exports.addCommentReaction = exports.getCurrentPullRequestId = exports.getBase = exports.getCurrentContext = exports.deleteComment = exports.createComment = exports.updateComment = exports.readIsPreviewEnabledFromComment = exports.findPreviousComment = void 0;
 const core = __importStar(__nccwpck_require__(2186));
 const utils_1 = __nccwpck_require__(3030);
 const common_1 = __nccwpck_require__(6979);
@@ -529,7 +530,6 @@ const getBase = (token, prId) => __awaiter(void 0, void 0, void 0, function* () 
 });
 exports.getBase = getBase;
 const getCurrentPullRequestId = (token) => __awaiter(void 0, void 0, void 0, function* () {
-    // core.info('Getting current pull request id...');
     const client = new utils_1.GitHub({
         auth: token
     });
@@ -585,6 +585,40 @@ const addCommentReaction = (token, content) => __awaiter(void 0, void 0, void 0,
     }
 });
 exports.addCommentReaction = addCommentReaction;
+function pullRequestDetails(token) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const client = new utils_1.GitHub({
+            auth: token
+        });
+        const { repository: { pullRequest: { baseRef, headRef } } } = yield client.graphql(`
+      query pullRequestDetails($repo:String!, $owner:String!, $number:Int!) {
+        repository(name: $repo, owner: $owner) {
+          pullRequest(number: $number) {
+            baseRef {
+              name
+              target {
+                oid
+              }
+            }
+            headRef {
+              name
+              target {
+                oid
+              }
+            }
+          }
+        }
+      }
+    `, Object.assign(Object.assign({}, utils_1.context.repo), { number: utils_1.context.issue.number }));
+        return {
+            base_ref: baseRef.name,
+            base_sha: baseRef.target.oid,
+            head_ref: headRef.name,
+            head_sha: headRef.target.oid
+        };
+    });
+}
+exports.pullRequestDetails = pullRequestDetails;
 const getLatestCommitShortSha = (token) => __awaiter(void 0, void 0, void 0, function* () {
     // we need sha of latest commit
     const client = new utils_1.GitHub({
@@ -1025,14 +1059,6 @@ function run() {
             core.info(`isComment: ${isCommentAction}`);
             core.setOutput('isBot', isBot);
             core.setOutput('isComment', isCommentAction);
-            // Commented out for allowing bots :)
-            // if (isBot) {
-            //   core.info(
-            //     `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
-            //   );
-            //   setNeutralOutput();
-            //   return;
-            // }
             const isPreviewEnabled = yield (0, github_util_1.readIsPreviewEnabledFromComment)(options.githubToken);
             core.info('isPreviewEnabled: ' + isPreviewEnabled);
             core.setOutput('isPreviewEnabled', isPreviewEnabled);
@@ -1057,36 +1083,23 @@ function run() {
                         utils_1.context.payload.action === 'closed' &&
                         isPreviewEnabled;
             }
+            const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
+            const { head_ref: headRef } = yield (0, github_util_1.pullRequestDetails)(options.githubToken);
+            core.info('pullRequestId: ' + pullRequestId);
             core.info('isValidCommand: ' + isValidCommand);
             core.info('isAddPreviewPending: ' + isAddPreviewPending);
             core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
+            core.info('headRef: ' + headRef);
+            core.setOutput('pullRequestId', pullRequestId);
+            core.setOutput('headRef', headRef);
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
-            try {
-                core.info('checking for skip ci...');
-                const msg = yield (0, github_util_1.getLatestCommitMessage)(options.githubToken);
-                const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
-                if (msg)
-                    core.info(msg);
-                else
-                    core.info('no msg');
-                if (isAddPreviewPending && skipCi2) {
-                    core.info('skip ci detected, setting isAddPreviewPending to false');
-                    setNeutralOutput();
-                    core.setOutput('isAddPreviewPending', false);
-                    return;
-                }
-            }
-            catch (err) {
-                core.info(err.message);
-            }
             if (options.probe.toLowerCase() === 'true') {
                 if (isCommentAction) {
                     core.info('👀 add early feedback on probing');
                     if (isAddPreviewPending) {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, 'rocket');
-                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
                     }
                     else if (isRemovePreviewPending) {
                         yield (0, github_util_1.addCommentReaction)(options.githubToken, '+1');
@@ -1100,9 +1113,8 @@ function run() {
                 const commentAction = (0, parse_comment_1.parseComment)();
                 if (commentAction === 'add-preview') {
                     try {
-                        // await addCommentReaction(options.githubToken, 'rocket');
                         (0, common_1.validateOptions)(options);
-                        // await postOrUpdateGithubComment('brewing', options);
+                        yield (0, sticky_comment_1.postOrUpdateGithubComment)('brewing', options);
                         const result = yield (0, deploy_preview_1.deployPreview)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('success', options, {
                             completePreviewUrl: result.previewUrl
@@ -1118,7 +1130,6 @@ function run() {
                 }
                 else if (commentAction === 'remove-preview') {
                     try {
-                        // await addCommentReaction(options.githubToken, '+1');
                         (0, common_1.validateOptions)(options);
                         const result = yield (0, remove_preview_1.removePreviewsForCurrentPullRequest)(options);
                         yield (0, sticky_comment_1.postOrUpdateGithubComment)('removed', options);
@@ -1172,6 +1183,20 @@ function run() {
                 }
                 else if (utils_1.context.payload.action === 'synchronize') {
                     if (isPreviewEnabled) {
+                        try {
+                            core.info('checking for skip ci...');
+                            const msg = yield (0, github_util_1.getLatestCommitMessage)(options.githubToken);
+                            const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
+                            if (isAddPreviewPending && skipCi2) {
+                                core.info('skip ci detected, setting isAddPreviewPending to false');
+                                setNeutralOutput();
+                                core.setOutput('isAddPreviewPending', false);
+                                return;
+                            }
+                        }
+                        catch (err) {
+                            core.error(err.message);
+                        }
                         core.info('synchronize PR, updating preview');
                         try {
                             (0, common_1.validateOptions)(options);

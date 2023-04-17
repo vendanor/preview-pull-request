@@ -6,7 +6,10 @@ import { batman } from './batman';
 import { postOrUpdateGithubComment } from './sticky-comment';
 import {
   addCommentReaction,
+  getCurrentPullRequestId,
   getLatestCommitMessage,
+  getLatestCommitShortSha,
+  pullRequestDetails,
   readIsPreviewEnabledFromComment
 } from './github-util';
 import { context } from '@actions/github/lib/utils';
@@ -92,15 +95,6 @@ async function run(): Promise<void> {
     core.setOutput('isBot', isBot);
     core.setOutput('isComment', isCommentAction);
 
-    // Commented out for allowing bots :)
-    // if (isBot) {
-    //   core.info(
-    //     `Hello 🤖 ${context.actor}, you are not allowed to proceed, good bye!`
-    //   );
-    //   setNeutralOutput();
-    //   return;
-    // }
-
     const isPreviewEnabled = await readIsPreviewEnabledFromComment(
       options.githubToken
     );
@@ -132,36 +126,25 @@ async function run(): Promise<void> {
         isPreviewEnabled;
     }
 
+    const pullRequestId = await getCurrentPullRequestId(options.githubToken);
+    const { head_ref: headRef } = await pullRequestDetails(options.githubToken);
+
+    core.info('pullRequestId: ' + pullRequestId);
     core.info('isValidCommand: ' + isValidCommand);
     core.info('isAddPreviewPending: ' + isAddPreviewPending);
     core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
+    core.info('headRef: ' + headRef);
+    core.setOutput('pullRequestId', pullRequestId);
+    core.setOutput('headRef', headRef);
     core.setOutput('isValidCommand', isValidCommand);
     core.setOutput('isAddPreviewPending', isAddPreviewPending);
     core.setOutput('isRemovePreviewPending', isRemovePreviewPending);
-
-    try {
-      core.info('checking for skip ci...');
-      const msg = await getLatestCommitMessage(options.githubToken);
-      const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
-      if (msg) core.info(msg);
-      else core.info('no msg');
-
-      if (isAddPreviewPending && skipCi2) {
-        core.info('skip ci detected, setting isAddPreviewPending to false');
-        setNeutralOutput();
-        core.setOutput('isAddPreviewPending', false);
-        return;
-      }
-    } catch (err: any) {
-      core.info(err.message);
-    }
 
     if (options.probe.toLowerCase() === 'true') {
       if (isCommentAction) {
         core.info('👀 add early feedback on probing');
         if (isAddPreviewPending) {
           await addCommentReaction(options.githubToken, 'rocket');
-          await postOrUpdateGithubComment('brewing', options);
         } else if (isRemovePreviewPending) {
           await addCommentReaction(options.githubToken, '+1');
         }
@@ -176,9 +159,8 @@ async function run(): Promise<void> {
 
       if (commentAction === 'add-preview') {
         try {
-          // await addCommentReaction(options.githubToken, 'rocket');
           validateOptions(options);
-          // await postOrUpdateGithubComment('brewing', options);
+          await postOrUpdateGithubComment('brewing', options);
           const result = await deployPreview(options);
           await postOrUpdateGithubComment('success', options, {
             completePreviewUrl: result.previewUrl
@@ -192,7 +174,6 @@ async function run(): Promise<void> {
         }
       } else if (commentAction === 'remove-preview') {
         try {
-          // await addCommentReaction(options.githubToken, '+1');
           validateOptions(options);
           const result = await removePreviewsForCurrentPullRequest(options);
           await postOrUpdateGithubComment('removed', options);
@@ -242,6 +223,22 @@ async function run(): Promise<void> {
         }
       } else if (context.payload.action === 'synchronize') {
         if (isPreviewEnabled) {
+          try {
+            core.info('checking for skip ci...');
+            const msg = await getLatestCommitMessage(options.githubToken);
+            const skipCi2 = (msg || '').toLowerCase().indexOf('skip ci') > -1;
+            if (isAddPreviewPending && skipCi2) {
+              core.info(
+                'skip ci detected, setting isAddPreviewPending to false'
+              );
+              setNeutralOutput();
+              core.setOutput('isAddPreviewPending', false);
+              return;
+            }
+          } catch (err: any) {
+            core.error(err.message);
+          }
+
           core.info('synchronize PR, updating preview');
           try {
             validateOptions(options);

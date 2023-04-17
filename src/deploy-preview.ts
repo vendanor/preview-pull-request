@@ -32,6 +32,7 @@ export async function deployPreview(options: Options): Promise<CommandResult> {
   const dockerImageName = `${options.dockerRegistry}/${options.dockerOrganization}/${options.dockerImageName}`;
   const dockerImageVersion = `${dockerImageName}:${options.dockerTagMajor}.0${tagPostfix}`;
   core.info('Building docker image: ' + dockerImageVersion);
+  core.info('Using sha: ' + sha7);
   const workspaceFolder = process.env.GITHUB_WORKSPACE || '.';
   const dockerBuildResult = await runCmd('docker', [
     'build',

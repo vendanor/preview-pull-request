@@ -132,84 +132,41 @@ on:
     types: [opened, synchronize, closed, reopened]
 
 env:
-  DOCKER_FILE: 'Dockerfile'
-  DOCKER_REGISTRY: 'ghcr.io'
-  DOCKER_IMAGE_NAME: 'my-app'
-  DOCKER_USERNAME: ${{github.actor}}
-  DOCKER_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
-  DOCKER_PULLSECRET: ${{ secrets.PULLSECRET }}
-  HELM_REPO_URL: 'https://yourhelmrepo.com'
-  HELM_REPO_USER: ${{ secrets.HELM_CHART_USERNAME }}
-  HELM_REPO_PASSWORD: ${{ secrets.HELM_CHART_PASSWORD }}
-  HELM_CHART: 'charts/my-app'
-  PREVIEW_APPNAME: 'my-app'
-  PREVIEW_BASEURL: 'preview.company.com'
-  PREVIEW_HASH_SECRET: ${{ secrets.PREVIEW_HASH_SEED }}
-  KUBECONFIG_STAGING: ${{ secrets.KUBECONFIG }}
+  APP_NAME: 'my-app'
 
 jobs:
-  preview:
-    name: Integrate preview
+  use:
+    name: Use preview
+    if: ${{ github.event.issue.pull_request || github.event.pull_request }}
     runs-on: ubuntu-latest
+    permissions: write-all
     steps:
-      - name: Read preview info
+      - name: Probe preview
         id: preview_info
-        uses: vendanor/preview-pull-request@v3.0
+        uses: vendanor/preview-pull-request@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           probe: true
 
       - name: Checkout
         if: ${{ steps.preview_info.outputs.isAddPreviewPending == 'true' }}
-        uses: actions/checkout@v3
-
-      - name: Cache dependencies
-        if: ${{ steps.preview_info.outputs.isAddPreviewPending == 'true' }}
-        uses: actions/cache@v3
+        uses:
+          actions/checkout@v3
         with:
-          path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/packages.lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-nuget-
+          ref: ${{ steps.preview_info.outputs.headRef }}
 
-      - name: Setup Dotnet
-        if: ${{ steps.preview_info.outputs.isAddPreviewPending == 'true' }}
-        uses: actions/setup-dotnet@v2
+      - name: Manage preview
+        uses: vendanor/preview-pull-request@v3
         with:
-          dotnet-version: 6.x
-
-      - name: Build Dotnet application
-        if: ${{ steps.preview_info.outputs.isAddPreviewPending == 'true' }}
-        run: |
-          dotnet publish ${{ env.PROJECT_FILE }} \
-          --configuration Release \
-          --output deploy
-
-      - name: Set Kubernetes context
-        uses: azure/k8s-set-context@v2
-        with:
-          method: kubeconfig
-          kubeconfig: ${{ env.KUBECONFIG_STAGING }}
-
-      - name: Connect preview
-        uses: vendanor/preview-pull-request@v3.0
-        with:
-          app-name: ${{ env.PREVIEW_APPNAME }}
-          base-url: ${{ env.PREVIEW_BASEURL }}
-          hash-salt: ${{ env.PREVIEW_HASH_SECRET }}
+          app-name: ${{ env.APP_NAME }}
           token: ${{ secrets.GITHUB_TOKEN }}
-          docker-registry: ${{ env.DOCKER_REGISTRY }}
-          docker-username: ${{ env.DOCKER_USERNAME }}
-          docker-password: ${{ env.DOCKER_PASSWORD }}
-          docker-image-name: ${{ env.DOCKER_IMAGE_NAME }}
-          docker-pullsecret: ${{ env.DOCKER_PULLSECRET }}
-          docker-file: ${{ env.DOCKER_FILE }}
-          helm-repo-url: ${{ env.HELM_REPO_URL }}
-          helm-repo-user: ${{ env.HELM_REPO_USER }}
-          helm-repo-password: ${{ env.HELM_REPO_PASSWORD }}
-          helm-chart: ${{ env.HELM_CHART }}
+          docker-username: ${{ github.actor }}
+          docker-password: ${{ secrets.GITHUB_TOKEN }}
+          docker-image-name: ${{ env.APP_NAME }}
+          docker-pullsecret: ${{ secrets.VENDANOR_GH_PACKAGES_PULLSECRET }}
+          helm-repo-password: ${{ secrets.VENDANOR_HELM_CHART_PASSWORD }}
           helm-values: |
-            enabled=false
+            appconfig=${{secrets.CONFIG}}
 ```
 
 ## Certificates
