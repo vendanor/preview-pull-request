@@ -161,7 +161,7 @@ outputs:
   pullRequestNumber:
     description: "Returns the pull request number"
   headRef:
-    description: "Use this to checkout the correct ref when triggered by a comment"
+    description: "Use this to checkout the correct ref when triggered by a comment. Can be null"
 
 runs:
   using: 'node16'

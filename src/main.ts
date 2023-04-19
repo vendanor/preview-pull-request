@@ -127,15 +127,21 @@ async function run(): Promise<void> {
     }
 
     const pullRequestId = await getCurrentPullRequestId(options.githubToken);
-    const { head_ref: headRef } = await pullRequestDetails(options.githubToken);
+
+    const headRef = await pullRequestDetails(options.githubToken);
+    if (headRef) {
+      // headRef has value when action is triggered by a comment (which uses default branch)
+      core.info('headRef: ' + headRef);
+      core.setOutput('headRef', headRef);
+    } else {
+      core.info('headRef: NA');
+    }
 
     core.info('pullRequestId: ' + pullRequestId);
     core.info('isValidCommand: ' + isValidCommand);
     core.info('isAddPreviewPending: ' + isAddPreviewPending);
     core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
-    core.info('headRef: ' + headRef);
     core.setOutput('pullRequestId', pullRequestId);
-    core.setOutput('headRef', headRef);
     core.setOutput('isValidCommand', isValidCommand);
     core.setOutput('isAddPreviewPending', isAddPreviewPending);
     core.setOutput('isRemovePreviewPending', isRemovePreviewPending);

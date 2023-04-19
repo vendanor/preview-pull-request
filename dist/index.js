@@ -610,12 +610,9 @@ function pullRequestDetails(token) {
         }
       }
     `, Object.assign(Object.assign({}, utils_1.context.repo), { number: utils_1.context.issue.number }));
-        return {
-            base_ref: baseRef.name,
-            base_sha: baseRef.target.oid,
-            head_ref: headRef.name,
-            head_sha: headRef.target.oid
-        };
+        core.info('debug baseref' + (baseRef === null || baseRef === void 0 ? void 0 : baseRef.name) || 0);
+        core.info('debug headref' + (headRef === null || headRef === void 0 ? void 0 : headRef.name) || 0);
+        return (headRef === null || headRef === void 0 ? void 0 : headRef.name) || undefined;
     });
 }
 exports.pullRequestDetails = pullRequestDetails;
@@ -1084,14 +1081,20 @@ function run() {
                         isPreviewEnabled;
             }
             const pullRequestId = yield (0, github_util_1.getCurrentPullRequestId)(options.githubToken);
-            const { head_ref: headRef } = yield (0, github_util_1.pullRequestDetails)(options.githubToken);
+            const headRef = yield (0, github_util_1.pullRequestDetails)(options.githubToken);
+            if (headRef) {
+                // headRef has value when action is triggered by a comment (which uses default branch)
+                core.info('headRef: ' + headRef);
+                core.setOutput('headRef', headRef);
+            }
+            else {
+                core.info('headRef: NA');
+            }
             core.info('pullRequestId: ' + pullRequestId);
             core.info('isValidCommand: ' + isValidCommand);
             core.info('isAddPreviewPending: ' + isAddPreviewPending);
             core.info('isRemovePreviewPending: ' + isRemovePreviewPending);
-            core.info('headRef: ' + headRef);
             core.setOutput('pullRequestId', pullRequestId);
-            core.setOutput('headRef', headRef);
             core.setOutput('isValidCommand', isValidCommand);
             core.setOutput('isAddPreviewPending', isAddPreviewPending);
             core.setOutput('isRemovePreviewPending', isRemovePreviewPending);

@@ -259,12 +259,9 @@ export async function pullRequestDetails(token: string) {
     }
   );
 
-  return {
-    base_ref: baseRef.name,
-    base_sha: baseRef.target.oid,
-    head_ref: headRef.name,
-    head_sha: headRef.target.oid
-  };
+  core.info('debug baseref' + baseRef?.name || 'NA');
+  core.info('debug headref' + headRef?.name || 'NA');
+  return headRef?.name || undefined;
 }
 
 export const getLatestCommitShortSha = async (token: string) => {
