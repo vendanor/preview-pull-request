@@ -1615,6 +1615,7 @@ ${commands}
             removed: `
 ${(0, common_1.headerPreviewEnabled)(false)}
 🧹 All previews are uninstalled.
+${commands}
   `,
             brewing: `
 ${(0, common_1.headerPreviewEnabled)(true)}

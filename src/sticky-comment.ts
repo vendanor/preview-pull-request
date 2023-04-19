@@ -61,6 +61,7 @@ ${commands}
     removed: `
 ${headerPreviewEnabled(false)}
 🧹 All previews are uninstalled.
+${commands}
   `,
     brewing: `
 ${headerPreviewEnabled(true)}
