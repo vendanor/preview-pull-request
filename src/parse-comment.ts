@@ -7,7 +7,7 @@ type CommentAction = 'add-preview' | 'remove-preview';
 
 export const parseComment = (): CommentAction | undefined => {
   const comment: string = (context.payload as any).comment.body;
-  if (!comment.toLowerCase().startsWith(commentPrefix)) {
+  if (!comment.toLowerCase().trim().startsWith(commentPrefix)) {
     core.info(`HINT: Preview comments must start with ${commentPrefix}`);
     core.info(comment);
     return;
